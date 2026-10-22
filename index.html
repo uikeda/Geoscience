@@ -1,5 +1,10 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eef0ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141917" media="(prefers-color-scheme: dark)">
 <title>地学 単語帳</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Shippori+Mincho+B1:wght@600;800&display=swap">
@@ -19,8 +24,12 @@
   --bg:#141917; --surface:#1d2421; --ink:#e6ebe7; --muted:#9aa7a0; --line:#323d38;
   --c1:#d08a70; --c2:#d6b05e; --c3:#6fb1d2; --good:#6cc08c; --again:#e07c6e; color-scheme:dark}
 html,body{height:100%}
-body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.7;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.7;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-tap-highlight-color:transparent}
+button{touch-action:manipulation}
+.qtext,.a li,.row .rq,.row .ra{overflow-wrap:anywhere;line-break:strict}
 .wrap{max-width:640px;margin:0 auto;padding-block:20px 40px;display:flex;flex-direction:column;gap:16px}
 header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
 h1{font-family:var(--display);font-weight:800;font-size:1.6rem;margin:0;letter-spacing:.04em;text-wrap:balance}
@@ -33,7 +42,8 @@ h1{font-family:var(--display);font-weight:800;font-size:1.6rem;margin:0;letter-s
   padding:8px 6px 6px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:2px;position:relative;min-width:0}
 .strata button:last-child{border-right:0}
 .strata .t{font-weight:700;font-size:.9rem}
-.strata .s{font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.strata .s,.strata .n{font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+.strata .n{font-variant-numeric:tabular-nums}
 .strata .bar{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:4px}
 .strata .bar i{display:block;height:100%;background:var(--k)}
 .strata button[aria-pressed="true"]{box-shadow:inset 0 -3px 0 var(--k);background:color-mix(in srgb,var(--k) 9%,var(--surface))}
@@ -41,7 +51,7 @@ h1{font-family:var(--display);font-weight:800;font-size:1.6rem;margin:0;letter-s
 .chip{font:inherit;font-size:.82rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);
   padding:4px 12px;border-radius:999px;cursor:pointer}
 .chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);font-weight:700}
-.spacer{flex:1}
+.foot{display:flex;justify-content:flex-end}
 .link{font:inherit;font-size:.8rem;background:none;border:0;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 /* card */
@@ -50,7 +60,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   display:flex;flex-direction:column;cursor:pointer;user-select:none;overflow:hidden}
 .card .q{padding:28px 22px 22px;flex:1;display:flex;flex-direction:column;gap:10px;justify-content:center}
 .tag{font-size:.72rem;letter-spacing:.12em;color:var(--accent);font-weight:700}
-.qtext{font-family:var(--display);font-weight:800;font-size:1.35rem;line-height:1.55;text-wrap:balance}
+.qtext{word-break:auto-phrase;font-family:var(--display);font-weight:800;font-size:1.35rem;line-height:1.55;text-wrap:balance}
 .card .a{border-top:1px dashed var(--line);padding:18px 22px 22px;background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
 .a ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
 .a li{font-size:1rem}
@@ -65,7 +75,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .done{text-align:center;padding:40px 20px;display:flex;flex-direction:column;gap:12px;align-items:center}
 .done h2{font-family:var(--display);margin:0}
 /* list */
-.search{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);box-sizing:border-box}
+.search{font:inherit;font-size:16px;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);box-sizing:border-box}
 .list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
 .row{padding:12px 16px;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr auto;gap:4px 10px}
 .row:last-child{border-bottom:0}
@@ -75,8 +85,29 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .row .rk{font-size:.75rem;cursor:pointer;border:1px solid var(--line);background:none;color:var(--muted);border-radius:999px;padding:1px 10px;font:inherit;font-size:.72rem;height:fit-content}
 .row .rk[aria-pressed="true"]{color:var(--good);border-color:var(--good)}
 .confirm{display:flex;gap:8px;align-items:center;font-size:.82rem;flex-wrap:wrap}
-@media (max-width:420px){.qtext{font-size:1.18rem}.controls{grid-template-columns:auto 1fr 1fr auto}.btn{padding:12px 8px}}
-@media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.card:hover{border-color:var(--accent)}}
+/* phone: larger tap targets, controls pinned within thumb reach */
+@media (max-width:560px){
+  .wrap{padding-block:14px 0;gap:12px}
+  h1{font-size:1.35rem}
+  .views button{padding:7px 16px}
+  .strata button{padding:8px 7px 6px}
+  .chip{padding:7px 14px;font-size:.85rem}
+  .link{padding:8px 0}
+  .card{min-height:240px}
+  .card .q{padding:22px 18px 18px}
+  .qtext{font-size:1.2rem}
+  .card .a{padding:16px 18px 18px}
+  .hint{padding:16px 18px}
+  .controls{position:sticky;bottom:0;z-index:1;margin-inline:-16px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));
+    background:linear-gradient(to bottom,transparent,var(--bg) 10px)}
+  .btn{padding:14px 10px;min-height:50px}
+  .controls .btn:first-child,.controls .btn:last-child{min-width:52px}
+  .foot{padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+  .row{padding:14px 14px}
+  .row .rk{padding:5px 12px;font-size:.75rem}
+}
+@media (hover:none) and (pointer:coarse){.keys{display:none}}
+@media (hover:hover) and (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.card:hover{border-color:var(--accent)}}
 </style>
 
 <div class="wrap">
@@ -94,8 +125,6 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     <button class="chip" id="oUnknown" aria-pressed="false">未習得のみ</button>
     <button class="chip" id="oShuffle" aria-pressed="false">シャッフル</button>
     <button class="chip" id="oReverse" aria-pressed="false">答え→問題</button>
-    <span class="spacer"></span>
-    <span id="resetBox"><button class="link" id="reset">記録をリセット</button></span>
   </div>
 
   <section id="cardView" style="display:flex;flex-direction:column;gap:12px">
@@ -115,6 +144,8 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     <div class="meta"><span id="lcount"></span></div>
     <div class="list" id="list"></div>
   </section>
+
+  <footer class="foot"><span id="resetBox"><button class="link" id="reset">記録をリセット</button></span></footer>
 </div>
 
 <script>
@@ -155,7 +186,7 @@ function renderStrata(){
   $("strata").innerHTML = CH.map((c,i)=>{
     const p = ALL.filter(x=>!i||x.ch===i), k=p.filter(x=>known.has(x.id)).length;
     return `<button style="--k:${c.k}" aria-pressed="${st.ch===i}" data-ch="${i}">
-      <span class="t">${c.t}</span><span class="s">${c.s?c.s+"・":""}${k}/${p.length}</span>
+      <span class="t">${c.t}</span><span class="s">${c.s||"すべて"}</span><span class="n">${k}/${p.length}</span>
       <span class="bar"><i style="width:${p.length?k/p.length*100:0}%"></i></span></button>`;
   }).join("");
   document.documentElement.style.setProperty("--accent", st.ch?CH[st.ch].k:"var(--c1)");
