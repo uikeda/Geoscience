@@ -1,0 +1,258 @@
+<title>地学 単語帳</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Shippori+Mincho+B1:wght@600;800&display=swap">
+<style>
+/* Layout: one centered column — chapter strata tabs, then a single card with its controls beneath */
+:root{
+  --bg:#eef0ec; --surface:#fbfcfa; --ink:#1d2421; --muted:#5d6a64; --line:#d3d9d4;
+  --c1:#7a4b3a; --c2:#a07a2c; --c3:#2f6a86; --accent:var(--c1);
+  --good:#2f7a4f; --again:#b0473a;
+  --display:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --body:"BIZ UDPGothic","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141917; --surface:#1d2421; --ink:#e6ebe7; --muted:#9aa7a0; --line:#323d38;
+  --c1:#d08a70; --c2:#d6b05e; --c3:#6fb1d2; --good:#6cc08c; --again:#e07c6e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141917; --surface:#1d2421; --ink:#e6ebe7; --muted:#9aa7a0; --line:#323d38;
+  --c1:#d08a70; --c2:#d6b05e; --c3:#6fb1d2; --good:#6cc08c; --again:#e07c6e; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.7;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:640px;margin:0 auto;padding-block:20px 40px;display:flex;flex-direction:column;gap:16px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:800;font-size:1.6rem;margin:0;letter-spacing:.04em;text-wrap:balance}
+.views{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
+.views button{border:0;background:none;color:var(--muted);font:inherit;font-size:.85rem;padding:4px 14px;border-radius:999px;cursor:pointer}
+.views button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+/* strata tabs */
+.strata{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.strata button{font:inherit;border:0;border-right:1px solid var(--line);background:var(--surface);color:var(--ink);
+  padding:8px 6px 6px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:2px;position:relative;min-width:0}
+.strata button:last-child{border-right:0}
+.strata .t{font-weight:700;font-size:.9rem}
+.strata .s{font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.strata .bar{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:4px}
+.strata .bar i{display:block;height:100%;background:var(--k)}
+.strata button[aria-pressed="true"]{box-shadow:inset 0 -3px 0 var(--k);background:color-mix(in srgb,var(--k) 9%,var(--surface))}
+.opts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{font:inherit;font-size:.82rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  padding:4px 12px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);font-weight:700}
+.spacer{flex:1}
+.link{font:inherit;font-size:.8rem;background:none;border:0;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* card */
+.meta{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;min-height:300px;
+  display:flex;flex-direction:column;cursor:pointer;user-select:none;overflow:hidden}
+.card .q{padding:28px 22px 22px;flex:1;display:flex;flex-direction:column;gap:10px;justify-content:center}
+.tag{font-size:.72rem;letter-spacing:.12em;color:var(--accent);font-weight:700}
+.qtext{font-family:var(--display);font-weight:800;font-size:1.35rem;line-height:1.55;text-wrap:balance}
+.card .a{border-top:1px dashed var(--line);padding:18px 22px 22px;background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
+.a ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.a li{font-size:1rem}
+.hint{padding:14px 22px;border-top:1px dashed var(--line);color:var(--muted);font-size:.85rem;text-align:center}
+.known-mark{font-size:.72rem;color:var(--good);font-weight:700}
+.controls{display:grid;grid-template-columns:auto 1fr 1fr auto;gap:8px}
+.btn{font:inherit;font-weight:700;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:12px;cursor:pointer}
+.btn.again{color:var(--again);border-color:color-mix(in srgb,var(--again) 45%,var(--line))}
+.btn.good{background:var(--good);border-color:var(--good);color:var(--surface)}
+.btn:disabled{opacity:.35;cursor:default}
+.keys{font-size:.75rem;color:var(--muted);text-align:center}
+.done{text-align:center;padding:40px 20px;display:flex;flex-direction:column;gap:12px;align-items:center}
+.done h2{font-family:var(--display);margin:0}
+/* list */
+.search{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);box-sizing:border-box}
+.list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.row{padding:12px 16px;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr auto;gap:4px 10px}
+.row:last-child{border-bottom:0}
+.row .rq{font-weight:700;min-width:0}
+.row .ra{grid-column:1/-1;color:var(--muted);font-size:.9rem;min-width:0}
+.row .ra div+div{margin-top:2px}
+.row .rk{font-size:.75rem;cursor:pointer;border:1px solid var(--line);background:none;color:var(--muted);border-radius:999px;padding:1px 10px;font:inherit;font-size:.72rem;height:fit-content}
+.row .rk[aria-pressed="true"]{color:var(--good);border-color:var(--good)}
+.confirm{display:flex;gap:8px;align-items:center;font-size:.82rem;flex-wrap:wrap}
+@media (max-width:420px){.qtext{font-size:1.18rem}.controls{grid-template-columns:auto 1fr 1fr auto}.btn{padding:12px 8px}}
+@media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.card:hover{border-color:var(--accent)}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>地学 単語帳</h1>
+    <div class="views" role="group" aria-label="表示">
+      <button id="vCard" aria-pressed="true">カード</button>
+      <button id="vList" aria-pressed="false">一覧</button>
+    </div>
+  </header>
+
+  <nav class="strata" id="strata" aria-label="章"></nav>
+
+  <div class="opts">
+    <button class="chip" id="oUnknown" aria-pressed="false">未習得のみ</button>
+    <button class="chip" id="oShuffle" aria-pressed="false">シャッフル</button>
+    <button class="chip" id="oReverse" aria-pressed="false">答え→問題</button>
+    <span class="spacer"></span>
+    <span id="resetBox"><button class="link" id="reset">記録をリセット</button></span>
+  </div>
+
+  <section id="cardView" style="display:flex;flex-direction:column;gap:12px">
+    <div class="meta"><span id="pos"></span><span id="score"></span></div>
+    <div id="cardHost"></div>
+    <div class="controls" id="controls">
+      <button class="btn" id="prev" aria-label="前へ">←</button>
+      <button class="btn again" id="again">まだ</button>
+      <button class="btn good" id="good">覚えた</button>
+      <button class="btn" id="next" aria-label="次へ">→</button>
+    </div>
+    <div class="keys">Space：答えを表示　1：まだ　2：覚えた　←→：移動</div>
+  </section>
+
+  <section id="listView" hidden style="flex-direction:column;gap:12px">
+    <input class="search" id="q" type="search" placeholder="問題・解答を検索">
+    <div class="meta"><span id="lcount"></span></div>
+    <div class="list" id="list"></div>
+  </section>
+</div>
+
+<script>
+const DATA = __DATA__;
+const CH = [
+  {t:"全章", s:"", k:"var(--ink)"},
+  {t:"第一章", s:"固体地球", k:"var(--c1)"},
+  {t:"第二章", s:"地表・地史", k:"var(--c2)"},
+  {t:"第三章", s:"大気・海洋", k:"var(--c3)"},
+];
+const ALL = [];
+DATA.forEach((rows,ci)=>rows.forEach((r,i)=>ALL.push({id:(ci+1)+"-"+(i+1),ch:ci+1,n:i+1,q:r[0],a:r[1]})));
+
+const store = {
+  get(k,d){try{const v=localStorage.getItem("chigaku:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem("chigaku:"+k,JSON.stringify(v))}catch(e){}}
+};
+let known = new Set(store.get("known",[]));
+let st = Object.assign({ch:0,unknown:false,shuffle:false,reverse:false,view:"card"}, store.get("prefs",{}));
+let deck=[], idx=0, shown=false;
+
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function savePrefs(){store.set("prefs",{ch:st.ch,unknown:st.unknown,shuffle:st.shuffle,reverse:st.reverse,view:st.view})}
+function saveKnown(){store.set("known",[...known])}
+function pool(){return ALL.filter(c=>!st.ch||c.ch===st.ch)}
+
+function buildDeck(keepId){
+  let d = pool();
+  if(st.unknown) d = d.filter(c=>!known.has(c.id));
+  if(st.shuffle){d=d.slice();for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]]}}
+  deck=d; idx=0;
+  if(keepId){const k=deck.findIndex(c=>c.id===keepId); if(k>=0) idx=k;}
+  shown=false;
+}
+
+function renderStrata(){
+  $("strata").innerHTML = CH.map((c,i)=>{
+    const p = ALL.filter(x=>!i||x.ch===i), k=p.filter(x=>known.has(x.id)).length;
+    return `<button style="--k:${c.k}" aria-pressed="${st.ch===i}" data-ch="${i}">
+      <span class="t">${c.t}</span><span class="s">${c.s?c.s+"・":""}${k}/${p.length}</span>
+      <span class="bar"><i style="width:${p.length?k/p.length*100:0}%"></i></span></button>`;
+  }).join("");
+  document.documentElement.style.setProperty("--accent", st.ch?CH[st.ch].k:"var(--c1)");
+}
+
+function renderCard(){
+  const p=pool(), k=p.filter(x=>known.has(x.id)).length;
+  $("score").textContent=`覚えた ${k} / ${p.length}`;
+  const host=$("cardHost");
+  if(!deck.length || idx>=deck.length){
+    $("pos").textContent = deck.length?`${deck.length} / ${deck.length}`:"0 / 0";
+    host.innerHTML = `<div class="card done" style="cursor:default"><h2>${deck.length?"この範囲を一周しました":"未習得の問題はありません"}</h2>
+      <div style="color:var(--muted);font-size:.9rem">覚えた ${k} / ${p.length}</div>
+      <button class="btn good" id="restart">${deck.length?"もう一周する":"すべて表示する"}</button></div>`;
+    $("restart").onclick=()=>{ if(!deck.length){st.unknown=false;syncChips();savePrefs();} buildDeck(); render(); };
+    ["prev","again","good","next"].forEach(b=>$(b).disabled = b==="prev" ? !deck.length : true);
+    return;
+  }
+  const c=deck[idx];
+  $("pos").textContent=`${idx+1} / ${deck.length}`;
+  const front = st.reverse ? c.a.map(esc).join("<br>") : esc(c.q);
+  const back = st.reverse ? [c.q] : c.a;
+  host.innerHTML = `<div class="card" id="card" tabindex="0" role="button" aria-label="カードをめくる">
+    <div class="q"><div style="display:flex;justify-content:space-between;gap:8px"><span class="tag">${CH[c.ch].t}　No.${c.n}</span>${known.has(c.id)?'<span class="known-mark">覚えた</span>':""}</div>
+    <div class="qtext"${st.reverse?' style="font-family:var(--body);font-weight:700;font-size:1.05rem"':""}>${front}</div></div>
+    ${shown?`<div class="a"><ul>${back.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:`<div class="hint">タップして${st.reverse?"問題":"答え"}を表示</div>`}
+  </div>`;
+  $("card").onclick=flip;
+  $("prev").disabled = idx===0;
+  $("next").disabled = false;
+  $("again").disabled = $("good").disabled = !shown;
+}
+
+function renderList(){
+  const term=$("q").value.trim().toLowerCase();
+  let p=pool(); if(st.unknown) p=p.filter(c=>!known.has(c.id));
+  if(term) p=p.filter(c=>(c.q+" "+c.a.join(" ")).toLowerCase().includes(term));
+  $("lcount").textContent=`${p.length} 問`;
+  $("list").innerHTML = p.length ? p.map(c=>`<div class="row"><div class="rq"><span class="tag">${CH[c.ch].t} ${c.n}</span>　${esc(c.q)}</div>
+    <button class="rk" data-id="${c.id}" aria-pressed="${known.has(c.id)}">${known.has(c.id)?"覚えた":"未習得"}</button>
+    <div class="ra">${c.a.map(x=>`<div>${esc(x)}</div>`).join("")}</div></div>`).join("")
+    : `<div class="row" style="color:var(--muted)">該当する問題はありません</div>`;
+}
+
+function render(){
+  renderStrata();
+  const isCard=st.view==="card";
+  $("cardView").hidden=!isCard; $("listView").hidden=isCard;
+  $("listView").style.display=isCard?"none":"flex"; $("cardView").style.display=isCard?"flex":"none";
+  $("vCard").setAttribute("aria-pressed",isCard); $("vList").setAttribute("aria-pressed",!isCard);
+  $("oReverse").style.display=isCard?"":"none"; $("oShuffle").style.display=isCard?"":"none";
+  isCard?renderCard():renderList();
+}
+function syncChips(){
+  $("oUnknown").setAttribute("aria-pressed",st.unknown);
+  $("oShuffle").setAttribute("aria-pressed",st.shuffle);
+  $("oReverse").setAttribute("aria-pressed",st.reverse);
+}
+function flip(){ if(idx<deck.length){shown=!shown; renderCard();} }
+function go(d){ idx=Math.max(0,Math.min(deck.length,idx+d)); shown=false; renderCard(); }
+function mark(ok){
+  if(!shown||idx>=deck.length) return;
+  const c=deck[idx];
+  ok?known.add(c.id):known.delete(c.id); saveKnown();
+  if(!ok && st.unknown){ /* keep it in rotation: move to end */ deck.push(deck.splice(idx,1)[0]); shown=false; renderStrata(); renderCard(); return; }
+  if(ok && st.unknown){ deck.splice(idx,1); shown=false; renderStrata(); renderCard(); return; }
+  renderStrata(); go(1);
+}
+
+$("strata").onclick=e=>{const b=e.target.closest("button"); if(!b) return; st.ch=+b.dataset.ch; savePrefs(); buildDeck(); render();};
+$("oUnknown").onclick=()=>{st.unknown=!st.unknown; syncChips(); savePrefs(); buildDeck(); render();};
+$("oShuffle").onclick=()=>{st.shuffle=!st.shuffle; syncChips(); savePrefs(); buildDeck(); render();};
+$("oReverse").onclick=()=>{st.reverse=!st.reverse; syncChips(); savePrefs(); shown=false; render();};
+$("vCard").onclick=()=>{st.view="card"; savePrefs(); render();};
+$("vList").onclick=()=>{st.view="list"; savePrefs(); render();};
+$("q").oninput=renderList;
+$("list").onclick=e=>{const b=e.target.closest(".rk"); if(!b) return; const id=b.dataset.id; known.has(id)?known.delete(id):known.add(id); saveKnown(); renderStrata(); renderList();};
+$("prev").onclick=()=>go(-1); $("next").onclick=()=>go(1);
+$("again").onclick=()=>mark(false); $("good").onclick=()=>mark(true);
+
+function resetUI(){
+  const box=$("resetBox");
+  box.innerHTML=`<span class="confirm">${st.ch?CH[st.ch].t:"全章"}の記録を消しますか？<button class="link" id="rYes" style="color:var(--again)">消す</button><button class="link" id="rNo">やめる</button></span>`;
+  $("rYes").onclick=()=>{pool().forEach(c=>known.delete(c.id)); saveKnown(); restore(); buildDeck(); render();};
+  $("rNo").onclick=restore;
+}
+function restore(){ $("resetBox").innerHTML=`<button class="link" id="reset">記録をリセット</button>`; $("reset").onclick=resetUI; }
+$("reset").onclick=resetUI;
+
+document.addEventListener("keydown",e=>{
+  if(st.view!=="card"||e.target.tagName==="INPUT") return;
+  if(e.key===" "||e.key==="Enter"){e.preventDefault(); flip();}
+  else if(e.key==="ArrowRight") go(1);
+  else if(e.key==="ArrowLeft") go(-1);
+  else if(e.key==="1") mark(false);
+  else if(e.key==="2") mark(true);
+});
+
+syncChips(); buildDeck(); render();
+</script>
