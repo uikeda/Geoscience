@@ -85,6 +85,24 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .row .rk{font-size:.75rem;cursor:pointer;border:1px solid var(--line);background:none;color:var(--muted);border-radius:999px;padding:1px 10px;font:inherit;font-size:.72rem;height:fit-content}
 .row .rk[aria-pressed="true"]{color:var(--good);border-color:var(--good)}
 .confirm{display:flex;gap:8px;align-items:center;font-size:.82rem;flex-wrap:wrap}
+/* add */
+.step{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.step h2{font-size:.95rem;margin:0;display:flex;gap:8px;align-items:baseline}
+.step h2 b{font-family:var(--display);color:var(--accent)}
+.step p{margin:0;font-size:.85rem;color:var(--muted)}
+.box{font:inherit;font-size:16px;width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+  background:var(--bg);color:var(--ink);resize:vertical;line-height:1.6}
+.box[readonly]{font-size:.8rem;color:var(--muted)}
+.bar2{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bar2 .btn{padding:8px 14px;font-size:.88rem}
+select.box{width:auto;padding:8px 10px}
+.msg{font-size:.82rem}
+.msg.err{color:var(--again)}.msg.ok{color:var(--good)}
+.pv{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden;max-height:320px;overflow-y:auto}
+.pv .row{grid-template-columns:1fr}
+.pv .row.dup{opacity:.5}
+.list[hidden],.pv[hidden]{display:none}
+.new{font-size:.68rem;color:var(--accent);border:1px solid currentColor;border-radius:4px;padding:0 4px;margin-left:6px;font-weight:700;vertical-align:1px}
 /* phone: larger tap targets, controls pinned within thumb reach */
 @media (max-width:560px){
   .wrap{padding-block:14px 0;gap:12px}
@@ -116,6 +134,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     <div class="views" role="group" aria-label="表示">
       <button id="vCard" aria-pressed="true">カード</button>
       <button id="vList" aria-pressed="false">一覧</button>
+      <button id="vAdd" aria-pressed="false">追加</button>
     </div>
   </header>
 
@@ -145,6 +164,31 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     <div class="list" id="list"></div>
   </section>
 
+  <section id="addView" hidden style="flex-direction:column;gap:12px">
+    <div class="step">
+      <h2><b>1</b>AIに指示文を渡す</h2>
+      <p>ChatGPT・Claude・Gemini などのチャットに、この指示文と資料（教科書の文章や写真、メモ）を一緒に送ってください。</p>
+      <textarea class="box" id="prompt" rows="6" readonly></textarea>
+      <div class="bar2"><button class="btn" id="copyPrompt">指示文をコピー</button><span class="msg" id="copyMsg"></span></div>
+    </div>
+    <div class="step">
+      <h2><b>2</b>AIの返答を貼り付ける</h2>
+      <p><code>| 問題 | 解答 |</code> の行を読み取ります。前後の説明文や表の見出しは無視します。</p>
+      <textarea class="box" id="paste" rows="7" placeholder="| ジオイドとは | 平均海水面を陸域にも延長した仮想の面 |"></textarea>
+      <div class="bar2"><label for="addCh" style="font-size:.85rem">追加先</label><select class="box" id="addCh"></select></div>
+      <div class="msg" id="pvMsg"></div>
+      <div class="pv" id="pv" hidden></div>
+      <div class="bar2"><button class="btn good" id="doAdd" disabled>追加する</button></div>
+    </div>
+    <div class="step">
+      <h2><b>3</b>追加した問題</h2>
+      <p>追加した問題は、このブラウザだけに保存されます。別の端末で使うときや、問題集の元データ（<code>src/ch*.md</code>）に入れるときは、書き出したテキストを貼り付けてください。</p>
+      <div class="msg" id="customCount"></div>
+      <div class="list" id="customList"></div>
+      <div class="bar2"><button class="btn" id="exportCustom">書き出しをコピー</button><span class="msg" id="exportMsg"></span></div>
+    </div>
+  </section>
+
   <footer class="foot"><span id="resetBox"><button class="link" id="reset">記録をリセット</button></span></footer>
 </div>
 
@@ -156,13 +200,21 @@ const CH = [
   {t:"第二章", s:"地表・地史", k:"var(--c2)"},
   {t:"第三章", s:"大気・海洋", k:"var(--c3)"},
 ];
-const ALL = [];
-DATA.forEach((rows,ci)=>rows.forEach((r,i)=>ALL.push({id:(ci+1)+"-"+(i+1),ch:ci+1,n:i+1,q:r[0],a:r[1]})));
-
 const store = {
   get(k,d){try{const v=localStorage.getItem("chigaku:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
   set(k,v){try{localStorage.setItem("chigaku:"+k,JSON.stringify(v))}catch(e){}}
 };
+// Added questions live only in this browser. Their IDs ("1-u…") never collide with or shift the built-in "章-番号" IDs.
+let custom = store.get("custom",[]);
+const ALL = [];
+function buildAll(){
+  ALL.length=0;
+  DATA.forEach((rows,ci)=>{
+    rows.forEach((r,i)=>ALL.push({id:(ci+1)+"-"+(i+1),ch:ci+1,n:i+1,q:r[0],a:r[1]}));
+    custom.filter(c=>c.ch===ci+1).forEach((c,i)=>ALL.push({id:c.id,ch:c.ch,n:rows.length+i+1,q:c.q,a:c.a,added:true}));
+  });
+}
+buildAll();
 let known = new Set(store.get("known",[]));
 let st = Object.assign({ch:0,unknown:false,shuffle:false,reverse:false,view:"card"}, store.get("prefs",{}));
 let deck=[], idx=0, shown=false;
@@ -210,7 +262,7 @@ function renderCard(){
   const front = st.reverse ? c.a.map(esc).join("<br>") : esc(c.q);
   const back = st.reverse ? [c.q] : c.a;
   host.innerHTML = `<div class="card" id="card" tabindex="0" role="button" aria-label="カードをめくる">
-    <div class="q"><div style="display:flex;justify-content:space-between;gap:8px"><span class="tag">${CH[c.ch].t}　No.${c.n}</span>${known.has(c.id)?'<span class="known-mark">覚えた</span>':""}</div>
+    <div class="q"><div style="display:flex;justify-content:space-between;gap:8px"><span class="tag">${CH[c.ch].t}　No.${c.n}${c.added?'<span class="new">追加</span>':""}</span>${known.has(c.id)?'<span class="known-mark">覚えた</span>':""}</div>
     <div class="qtext"${st.reverse?' style="font-family:var(--body);font-weight:700;font-size:1.05rem"':""}>${front}</div></div>
     ${shown?`<div class="a"><ul>${back.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:`<div class="hint">タップして${st.reverse?"問題":"答え"}を表示</div>`}
   </div>`;
@@ -225,7 +277,7 @@ function renderList(){
   let p=pool(); if(st.unknown) p=p.filter(c=>!known.has(c.id));
   if(term) p=p.filter(c=>(c.q+" "+c.a.join(" ")).toLowerCase().includes(term));
   $("lcount").textContent=`${p.length} 問`;
-  $("list").innerHTML = p.length ? p.map(c=>`<div class="row"><div class="rq"><span class="tag">${CH[c.ch].t} ${c.n}</span>　${esc(c.q)}</div>
+  $("list").innerHTML = p.length ? p.map(c=>`<div class="row"><div class="rq"><span class="tag">${CH[c.ch].t} ${c.n}</span>${c.added?'<span class="new">追加</span>':""}　${esc(c.q)}</div>
     <button class="rk" data-id="${c.id}" aria-pressed="${known.has(c.id)}">${known.has(c.id)?"覚えた":"未習得"}</button>
     <div class="ra">${c.a.map(x=>`<div>${esc(x)}</div>`).join("")}</div></div>`).join("")
     : `<div class="row" style="color:var(--muted)">該当する問題はありません</div>`;
@@ -233,12 +285,14 @@ function renderList(){
 
 function render(){
   renderStrata();
-  const isCard=st.view==="card";
-  $("cardView").hidden=!isCard; $("listView").hidden=isCard;
-  $("listView").style.display=isCard?"none":"flex"; $("cardView").style.display=isCard?"flex":"none";
-  $("vCard").setAttribute("aria-pressed",isCard); $("vList").setAttribute("aria-pressed",!isCard);
+  const v=st.view, isCard=v==="card", isAdd=v==="add";
+  [["card","cardView","vCard"],["list","listView","vList"],["add","addView","vAdd"]].forEach(([k,sec,btn])=>{
+    $(sec).hidden=v!==k; $(sec).style.display=v===k?"flex":"none"; $(btn).setAttribute("aria-pressed",v===k);
+  });
+  $("strata").style.display=$("resetBox").style.display=isAdd?"none":"";
+  document.querySelector(".opts").style.display=isAdd?"none":"";
   $("oReverse").style.display=isCard?"":"none"; $("oShuffle").style.display=isCard?"":"none";
-  isCard?renderCard():renderList();
+  isCard?renderCard():isAdd?renderAdd():renderList();
 }
 function syncChips(){
   $("oUnknown").setAttribute("aria-pressed",st.unknown);
@@ -262,6 +316,7 @@ $("oShuffle").onclick=()=>{st.shuffle=!st.shuffle; syncChips(); savePrefs(); bui
 $("oReverse").onclick=()=>{st.reverse=!st.reverse; syncChips(); savePrefs(); shown=false; render();};
 $("vCard").onclick=()=>{st.view="card"; savePrefs(); render();};
 $("vList").onclick=()=>{st.view="list"; savePrefs(); render();};
+$("vAdd").onclick=()=>{st.view="add"; savePrefs(); render();};
 $("q").oninput=renderList;
 $("list").onclick=e=>{const b=e.target.closest(".rk"); if(!b) return; const id=b.dataset.id; known.has(id)?known.delete(id):known.add(id); saveKnown(); renderStrata(); renderList();};
 $("prev").onclick=()=>go(-1); $("next").onclick=()=>go(1);
@@ -275,6 +330,102 @@ function resetUI(){
 }
 function restore(){ $("resetBox").innerHTML=`<button class="link" id="reset">記録をリセット</button>`; $("reset").onclick=resetUI; }
 $("reset").onclick=resetUI;
+
+/* add: questions written by an external AI chat, pasted back as "| 問題 | 解答 |" rows */
+const PROMPT = `次に渡す資料から、地学の一問一答の暗記カードを作ってください。
+
+# 出力の形式
+- 1行に1問、次の形式の行だけを出力する。
+| 問題 | 解答 |
+- 表の見出し行や区切り行（|---|）、前置き・まとめの文章は書かない。
+- 解答の途中で改行したいときは <br> と書く。問題・解答の中に | は使わない。
+
+# 内容
+- 問題は短くする（例：「〜とは」「〜の理由」「〜を3つ答えよ」）。
+- 解答は資料に書かれている内容だけで作り、要点を簡潔にまとめる。資料にないことは推測で書かない。
+- 例：
+| ジオイドとは | 平均海水面を陸域にも延長し、地球の全表面を覆った仮想の面。標高の基準 |
+| 物理的風化と化学的風化が起きやすい地域をそれぞれ答えよ | 物理的風化：寒暖の差が大きい乾燥地域や寒冷地域<br>化学的風化：熱帯から亜熱帯の温暖湿潤な地域 |
+
+# 資料
+（ここに教科書の文章を貼るか、写真を添付する）`;
+const KANJI={"一":1,"二":2,"三":3,"1":1,"2":2,"3":3,"１":1,"２":2,"３":3};
+const norm=s=>s.replace(/\s+/g,"");
+let parsed=[];
+
+// Rows are "| q | a |"; a "第N章" line outside a row switches the target chapter (used by the export format).
+function parse(text, defCh){
+  const rows=[], bad=[]; let ch=defCh;
+  for(let line of text.split(/\r?\n/)){
+    line=line.trim();
+    if(!line||line.startsWith("```")) continue;
+    if(!line.startsWith("|")){ const m=line.match(/第\s*([一二三123１２３])\s*章/); if(m) ch=KANJI[m[1]]; continue; }
+    const cells=line.replace(/^\|/,"").replace(/\|$/,"").split("|").map(x=>x.trim());
+    if(cells.every(x=>/^:?-{2,}:?$/.test(x)||x==="")) continue;
+    if(cells[0]==="問題") continue;
+    if(cells.length!==2||!cells[0]||!cells[1]){ bad.push(line); continue; }
+    rows.push({ch,q:cells[0],a:cells[1].split(/<br\s*\/?>/i).map(x=>x.trim()).filter(Boolean)});
+  }
+  const seen=new Set(ALL.map(c=>norm(c.q)));
+  rows.forEach(r=>{ const k=norm(r.q); r.dup=seen.has(k); seen.add(k); });
+  return {rows,bad};
+}
+
+function renderPreview(){
+  const {rows,bad}=parse($("paste").value, +$("addCh").value);
+  parsed=rows.filter(r=>!r.dup);
+  const dups=rows.length-parsed.length, msg=$("pvMsg");
+  if(!$("paste").value.trim()){ msg.textContent=""; msg.className="msg"; }
+  else if(!rows.length){ msg.textContent="「| 問題 | 解答 |」の形式の行が見つかりません。AIに指示文どおりの形式で出し直してもらってください。"; msg.className="msg err"; }
+  else {
+    msg.textContent=`${parsed.length} 問を追加できます`+(dups?`（すでにある問題 ${dups} 問は追加しません）`:"")+(bad.length?`。読み取れない行が ${bad.length} 行あります（列が2つでない行）`:"");
+    msg.className="msg"+(bad.length?" err":"");
+  }
+  $("pv").hidden=!rows.length;
+  $("pv").innerHTML=rows.map(r=>`<div class="row${r.dup?" dup":""}"><div class="rq"><span class="tag">${CH[r.ch].t}</span>　${esc(r.q)}${r.dup?'<span class="new" style="color:var(--muted)">既存</span>':""}</div>
+    <div class="ra">${r.a.map(x=>`<div>${esc(x)}</div>`).join("")}</div></div>`).join("");
+  $("doAdd").disabled=!parsed.length;
+}
+
+function renderAdd(){
+  $("prompt").value=PROMPT;
+  if(!$("addCh").options.length) $("addCh").innerHTML=CH.slice(1).map((c,i)=>`<option value="${i+1}">${c.t}（${c.s}）</option>`).join("");
+  if(st.ch) $("addCh").value=st.ch;
+  renderPreview();
+  const added=ALL.filter(c=>c.added);
+  $("customCount").textContent=added.length?`${added.length} 問`:"まだありません";
+  $("customList").hidden=!added.length;
+  $("customList").innerHTML=added.map(c=>`<div class="row"><div class="rq"><span class="tag">${CH[c.ch].t} ${c.n}</span>　${esc(c.q)}</div>
+    <button class="rk" data-del="${c.id}">削除</button><div class="ra">${c.a.map(x=>`<div>${esc(x)}</div>`).join("")}</div></div>`).join("");
+  $("exportCustom").disabled=!added.length;
+}
+
+function copy(text, msgId){
+  const done=ok=>{ const m=$(msgId); m.textContent=ok?"コピーしました":"コピーできませんでした。上の欄から手動で選択してください"; m.className="msg "+(ok?"ok":"err"); setTimeout(()=>{m.textContent=""},2500); };
+  if(navigator.clipboard&&window.isSecureContext) navigator.clipboard.writeText(text).then(()=>done(true),()=>done(false));
+  else { const t=document.createElement("textarea"); t.value=text; document.body.appendChild(t); t.select(); let ok=false; try{ok=document.execCommand("copy")}catch(e){} t.remove(); done(ok); }
+}
+
+$("paste").oninput=renderPreview;
+$("addCh").onchange=renderPreview;
+$("copyPrompt").onclick=()=>copy(PROMPT,"copyMsg");
+$("doAdd").onclick=()=>{
+  const stamp=Date.now().toString(36);
+  parsed.forEach((r,i)=>custom.push({id:`${r.ch}-u${stamp}${i.toString(36)}`,ch:r.ch,q:r.q,a:r.a}));
+  store.set("custom",custom); buildAll();
+  const n=parsed.length;
+  $("paste").value=""; buildDeck(); render();
+  $("pvMsg").textContent=`${n} 問を追加しました。カード・一覧に表示されます`; $("pvMsg").className="msg ok";
+};
+$("customList").onclick=e=>{
+  const b=e.target.closest("[data-del]"); if(!b) return;
+  custom=custom.filter(c=>c.id!==b.dataset.del); known.delete(b.dataset.del);
+  store.set("custom",custom); saveKnown(); buildAll(); buildDeck(); render();
+};
+$("exportCustom").onclick=()=>{
+  const out=[1,2,3].map(ch=>{ const rs=ALL.filter(c=>c.added&&c.ch===ch); return rs.length?CH[ch].t+"\n"+rs.map(c=>`| ${c.q} | ${c.a.join("<br>")} |`).join("\n"):""; }).filter(Boolean).join("\n\n");
+  copy(out,"exportMsg");
+};
 
 document.addEventListener("keydown",e=>{
   if(st.view!=="card"||e.target.tagName==="INPUT") return;
