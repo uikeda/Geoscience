@@ -68,7 +68,8 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .a li{font-size:1rem}
 .hint{padding:14px 22px;border-top:1px dashed var(--line);color:var(--muted);font-size:.85rem;text-align:center}
 .known-mark{font-size:.72rem;color:var(--good);font-weight:700;white-space:nowrap}
-.known-mark.due{color:var(--again)}
+.known-mark.due,.known-mark.missed{color:var(--again)}
+.known-mark.new{color:var(--muted);font-weight:400}
 .banner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
   background:color-mix(in srgb,var(--again) 8%,var(--surface));border:1px solid color-mix(in srgb,var(--again) 35%,var(--line));
   border-radius:12px;padding:10px 14px;font-size:.9rem}
@@ -76,7 +77,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .banner .btn{padding:6px 14px;font-size:.85rem;border-color:var(--again);color:var(--again)}
 .chip.rev[aria-pressed="true"]{border-color:var(--again);color:var(--again)}
 .chip:disabled{opacity:.4;cursor:default}
-.row .rk.due{color:var(--again);border-color:var(--again)}
+.row .rk.due,.row .rk.missed{color:var(--again);border-color:var(--again)}
 .controls{display:grid;grid-template-columns:auto 1fr auto;gap:8px}
 .grades{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .grades .btn{padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.3;min-width:0}
@@ -163,7 +164,8 @@ select.box{width:auto;padding:8px 10px}
   <div class="banner" id="banner" hidden></div>
 
   <div class="opts">
-    <button class="chip" id="oUnknown" aria-pressed="false">未習得のみ</button>
+    <button class="chip" id="oNew" aria-pressed="false">未判定</button>
+    <button class="chip" id="oMissed" aria-pressed="false">未習得</button>
     <button class="chip rev" id="oDue" aria-pressed="false">復習</button>
     <button class="chip" id="oShuffle" aria-pressed="false">シャッフル</button>
     <button class="chip" id="oReverse" aria-pressed="false">答え→問題</button>
@@ -240,7 +242,8 @@ function buildAll(){
 buildAll();
 let known = new Set(store.get("known",[]));
 let st = Object.assign({ch:0,filter:"",shuffle:false,reverse:false,view:"card"}, store.get("prefs",{}));
-if(st.unknown){ st.filter="unknown"; delete st.unknown; }  // prefs saved before the review filter existed
+if(st.unknown){ st.filter="new"; delete st.unknown; }  // prefs saved before the review filter existed
+if(st.filter==="unknown") st.filter="new";               // "未習得のみ" before 未判定 was split out
 
 /* spaced review: each known card has a stage (lv) and a due day; the interval grows each time it is recalled on time */
 const INTERVALS=[1,3,7,14,30,60,120];
@@ -261,9 +264,14 @@ function plan(id,g){
   const n=has?s.lv+1:1, lv=Math.max(1,Math.min(INTERVALS.length,g===2?n-1:g===3?n:n+1));
   return {lv,due:t+INTERVALS[lv-1]};
 }
-function grade(id,g){ const r=plan(id,g); if(!r) return forget(id); srs[id]=r; known.add(id); }
+function grade(id,g){ const r=plan(id,g); if(!r) return forget(id); srs[id]=r; known.add(id); missed.delete(id); }
 function learn(id){ grade(id,3); }
-function forget(id){ known.delete(id); delete srs[id]; }
+// 未判定 = never graded, 未習得 = last graded もう一度 (kept in `missed`), otherwise known.
+let missed = new Set(store.get("missed",[]));
+function forget(id){ known.delete(id); delete srs[id]; missed.add(id); }
+function clear(id){ known.delete(id); delete srs[id]; missed.delete(id); }
+const status=id=>known.has(id)?(isDue(id)?"due":"known"):missed.has(id)?"missed":"new";
+const FILTERS={new:"未判定",missed:"未習得",due:"復習"};
 function planLabel(id,g){
   const r=plan(id,g); if(!r) return "未習得へ";
   if(r===srs[id]) return "予定どおり";
@@ -275,13 +283,12 @@ let deck=[], idx=0, shown=false;
 const $=id=>document.getElementById(id);
 const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function savePrefs(){store.set("prefs",{ch:st.ch,filter:st.filter,shuffle:st.shuffle,reverse:st.reverse,view:st.view})}
-function saveKnown(){store.set("known",[...known]); store.set("srs",srs)}
+function saveKnown(){store.set("known",[...known]); store.set("srs",srs); store.set("missed",[...missed])}
 function pool(){return ALL.filter(c=>!st.ch||c.ch===st.ch)}
 
 function buildDeck(keepId){
   let d = pool();
-  if(st.filter==="unknown") d = d.filter(c=>!known.has(c.id));
-  if(st.filter==="due") d = d.filter(c=>isDue(c.id));
+  if(st.filter) d = d.filter(c=>status(c.id)===st.filter);
   if(st.shuffle){d=d.slice();for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]]}}
   deck=d; idx=0;
   if(keepId){const k=deck.findIndex(c=>c.id===keepId); if(k>=0) idx=k;}
@@ -296,9 +303,11 @@ function renderStrata(){
       <span class="bar"><i style="width:${p.length?k/p.length*100:0}%"></i></span></button>`;
   }).join("");
   document.documentElement.style.setProperty("--accent", st.ch?CH[st.ch].k:"var(--c1)");
-  const dueHere=pool().filter(c=>isDue(c.id)).length, dueAll=ALL.filter(c=>isDue(c.id)).length;
-  $("oDue").textContent=`復習 ${dueHere}`;
-  $("oDue").disabled=!dueHere&&st.filter!=="due";
+  const dueAll=ALL.filter(c=>isDue(c.id)).length;
+  [["new","oNew"],["missed","oMissed"],["due","oDue"]].forEach(([f,b])=>{
+    const n=pool().filter(c=>status(c.id)===f).length;
+    $(b).textContent=`${FILTERS[f]} ${n}`; $(b).disabled=!n&&st.filter!==f;
+  });
   const b=$("banner"), show=dueAll>0&&st.filter!=="due"&&st.view!=="add";
   b.hidden=!show; b.style.display=show?"":"none";
   if(show){
@@ -308,13 +317,13 @@ function renderStrata(){
 }
 
 function renderCard(){
-  const p=pool(), k=p.filter(x=>known.has(x.id)).length;
-  $("score").textContent=`覚えた ${k} / ${p.length}`;
+  const p=pool(), k=p.filter(x=>known.has(x.id)).length, m=p.filter(x=>missed.has(x.id)).length;
+  $("score").textContent=`覚えた ${k}・未習得 ${m}・未判定 ${p.length-k-m}`;
   const host=$("cardHost");
   if(!deck.length || idx>=deck.length){
     $("pos").textContent = deck.length?`${deck.length} / ${deck.length}`:"0 / 0";
     const rev=st.filter==="due", tm=today()+1, next=p.filter(c=>known.has(c.id)&&srs[c.id]&&srs[c.id].due===tm).length;
-    const title=rev?"今日の復習は終わりです":deck.length?"この範囲を一周しました":"未習得の問題はありません";
+    const title=rev?"今日の復習は終わりです":deck.length?"この範囲を一周しました":`${FILTERS[st.filter]}の問題はありません`;
     host.innerHTML = `<div class="card done" style="cursor:default"><h2>${title}</h2>
       <div style="color:var(--muted);font-size:.9rem">覚えた ${k} / ${p.length}${rev?`　明日の復習 ${next} 問`:""}</div>
       <button class="btn good" id="restart">${deck.length&&!rev?"もう一周する":"すべて表示する"}</button></div>`;
@@ -329,7 +338,7 @@ function renderCard(){
   const front = st.reverse ? c.a.map(esc).join("<br>") : esc(c.q);
   const back = st.reverse ? [c.q] : c.a;
   host.innerHTML = `<div class="card" id="card" tabindex="0" role="button" aria-label="カードをめくる">
-    <div class="q"><div style="display:flex;justify-content:space-between;gap:8px"><span class="tag">${CH[c.ch].t}　No.${c.n}${c.added?'<span class="new">追加</span>':""}</span>${known.has(c.id)?`<span class="known-mark${isDue(c.id)?" due":""}">${isDue(c.id)?"復習":"覚えた・"+dueLabel(c.id)}</span>`:""}</div>
+    <div class="q"><div style="display:flex;justify-content:space-between;gap:8px"><span class="tag">${CH[c.ch].t}　No.${c.n}${c.added?'<span class="new">追加</span>':""}</span><span class="known-mark ${status(c.id)}">${{due:"復習",known:"覚えた・"+dueLabel(c.id),missed:"未習得",new:"未判定"}[status(c.id)]}</span></div>
     <div class="qtext"${st.reverse?' style="font-family:var(--body);font-weight:700;font-size:1.05rem"':""}>${front}</div></div>
     ${shown?`<div class="a"><ul>${back.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:`<div class="hint">タップして${st.reverse?"問題":"答え"}を表示</div>`}
   </div>`;
@@ -344,11 +353,11 @@ function renderCard(){
 
 function renderList(){
   const term=$("q").value.trim().toLowerCase();
-  let p=pool(); if(st.filter==="unknown") p=p.filter(c=>!known.has(c.id)); if(st.filter==="due") p=p.filter(c=>isDue(c.id));
+  let p=pool(); if(st.filter) p=p.filter(c=>status(c.id)===st.filter);
   if(term) p=p.filter(c=>(c.q+" "+c.a.join(" ")).toLowerCase().includes(term));
   $("lcount").textContent=`${p.length} 問`;
   $("list").innerHTML = p.length ? p.map(c=>`<div class="row"><div class="rq"><span class="tag">${CH[c.ch].t} ${c.n}</span>${c.added?'<span class="new">追加</span>':""}　${esc(c.q)}</div>
-    <button class="rk${isDue(c.id)?" due":""}" data-id="${c.id}" aria-pressed="${known.has(c.id)}" title="${known.has(c.id)?dueLabel(c.id):""}">${!known.has(c.id)?"未習得":isDue(c.id)?"要復習":"覚えた"}</button>
+    <button class="rk ${status(c.id)}" data-id="${c.id}" aria-pressed="${known.has(c.id)}" title="${known.has(c.id)?dueLabel(c.id):""}">${{due:"要復習",known:"覚えた",missed:"未習得",new:"未判定"}[status(c.id)]}</button>
     <div class="ra">${c.a.map(x=>`<div>${esc(x)}</div>`).join("")}</div></div>`).join("")
     : `<div class="row" style="color:var(--muted)">該当する問題はありません</div>`;
 }
@@ -365,7 +374,8 @@ function render(){
   isCard?renderCard():isAdd?renderAdd():renderList();
 }
 function syncChips(){
-  $("oUnknown").setAttribute("aria-pressed",st.filter==="unknown");
+  $("oNew").setAttribute("aria-pressed",st.filter==="new");
+  $("oMissed").setAttribute("aria-pressed",st.filter==="missed");
   $("oDue").setAttribute("aria-pressed",st.filter==="due");
   $("oShuffle").setAttribute("aria-pressed",st.shuffle);
   $("oReverse").setAttribute("aria-pressed",st.reverse);
@@ -382,8 +392,7 @@ function mark(g){
 }
 
 $("strata").onclick=e=>{const b=e.target.closest("button"); if(!b) return; st.ch=+b.dataset.ch; savePrefs(); buildDeck(); render();};
-$("oUnknown").onclick=()=>{st.filter=st.filter==="unknown"?"":"unknown"; syncChips(); savePrefs(); buildDeck(); render();};
-$("oDue").onclick=()=>{st.filter=st.filter==="due"?"":"due"; syncChips(); savePrefs(); buildDeck(); render();};
+[["new","oNew"],["missed","oMissed"],["due","oDue"]].forEach(([f,b])=>$(b).onclick=()=>{st.filter=st.filter===f?"":f; syncChips(); savePrefs(); buildDeck(); render();});
 $("oShuffle").onclick=()=>{st.shuffle=!st.shuffle; syncChips(); savePrefs(); buildDeck(); render();};
 $("oReverse").onclick=()=>{st.reverse=!st.reverse; syncChips(); savePrefs(); shown=false; render();};
 $("vCard").onclick=()=>{st.view="card"; savePrefs(); render();};
@@ -397,7 +406,7 @@ $("mid").onclick=e=>{ if(e.target.closest("#show")) return flip(); const b=e.tar
 function resetUI(){
   const box=$("resetBox");
   box.innerHTML=`<span class="confirm">${st.ch?CH[st.ch].t:"全章"}の記録を消しますか？<button class="link" id="rYes" style="color:var(--again)">消す</button><button class="link" id="rNo">やめる</button></span>`;
-  $("rYes").onclick=()=>{pool().forEach(c=>forget(c.id)); saveKnown(); restore(); buildDeck(); render();};
+  $("rYes").onclick=()=>{pool().forEach(c=>clear(c.id)); saveKnown(); restore(); buildDeck(); render();};
   $("rNo").onclick=restore;
 }
 function restore(){ $("resetBox").innerHTML=`<button class="link" id="reset">記録をリセット</button>`; $("reset").onclick=resetUI; }
@@ -491,7 +500,7 @@ $("doAdd").onclick=()=>{
 };
 $("customList").onclick=e=>{
   const b=e.target.closest("[data-del]"); if(!b) return;
-  custom=custom.filter(c=>c.id!==b.dataset.del); forget(b.dataset.del);
+  custom=custom.filter(c=>c.id!==b.dataset.del); clear(b.dataset.del);
   store.set("custom",custom); saveKnown(); buildAll(); buildDeck(); render();
 };
 $("exportCustom").onclick=()=>{
