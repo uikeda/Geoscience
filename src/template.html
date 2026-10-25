@@ -44,6 +44,8 @@ h1{font-family:var(--display);font-weight:800;font-size:1.6rem;margin:0;letter-s
 .strata .t{font-weight:700;font-size:.9rem}
 .strata .s,.strata .n{font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
 .strata .n{font-variant-numeric:tabular-nums}
+.strata .dn{position:absolute;top:6px;right:6px;font-size:.66rem;font-weight:700;line-height:1;color:var(--surface);background:var(--again);
+  border-radius:999px;padding:3px 6px;font-variant-numeric:tabular-nums}
 .strata .bar{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:4px}
 .strata .bar i{display:block;height:100%;background:var(--k)}
 .strata button[aria-pressed="true"]{box-shadow:inset 0 -3px 0 var(--k);background:color-mix(in srgb,var(--k) 9%,var(--surface))}
@@ -65,7 +67,16 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .a ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
 .a li{font-size:1rem}
 .hint{padding:14px 22px;border-top:1px dashed var(--line);color:var(--muted);font-size:.85rem;text-align:center}
-.known-mark{font-size:.72rem;color:var(--good);font-weight:700}
+.known-mark{font-size:.72rem;color:var(--good);font-weight:700;white-space:nowrap}
+.known-mark.due{color:var(--again)}
+.banner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  background:color-mix(in srgb,var(--again) 8%,var(--surface));border:1px solid color-mix(in srgb,var(--again) 35%,var(--line));
+  border-radius:12px;padding:10px 14px;font-size:.9rem}
+.banner b{font-variant-numeric:tabular-nums}
+.banner .btn{padding:6px 14px;font-size:.85rem;border-color:var(--again);color:var(--again)}
+.chip.rev[aria-pressed="true"]{border-color:var(--again);color:var(--again)}
+.chip:disabled{opacity:.4;cursor:default}
+.row .rk.due{color:var(--again);border-color:var(--again)}
 .controls{display:grid;grid-template-columns:auto 1fr 1fr auto;gap:8px}
 .btn{font:inherit;font-weight:700;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:12px;cursor:pointer}
 .btn.again{color:var(--again);border-color:color-mix(in srgb,var(--again) 45%,var(--line))}
@@ -140,8 +151,11 @@ select.box{width:auto;padding:8px 10px}
 
   <nav class="strata" id="strata" aria-label="章"></nav>
 
+  <div class="banner" id="banner" hidden></div>
+
   <div class="opts">
     <button class="chip" id="oUnknown" aria-pressed="false">未習得のみ</button>
+    <button class="chip rev" id="oDue" aria-pressed="false">復習</button>
     <button class="chip" id="oShuffle" aria-pressed="false">シャッフル</button>
     <button class="chip" id="oReverse" aria-pressed="false">答え→問題</button>
   </div>
@@ -155,6 +169,7 @@ select.box{width:auto;padding:8px 10px}
       <button class="btn good" id="good">覚えた</button>
       <button class="btn" id="next" aria-label="次へ">→</button>
     </div>
+    <div id="srsNote" style="margin-top:-4px;font-size:.75rem;color:var(--muted);text-align:center">「覚えた」問題は 1→3→7→14→30→60→120日後 に復習を出します。復習で「まだ」を押すと最初からやり直し</div>
     <div class="keys">Space：答えを表示　1：まだ　2：覚えた　←→：移動</div>
   </section>
 
@@ -216,18 +231,37 @@ function buildAll(){
 }
 buildAll();
 let known = new Set(store.get("known",[]));
-let st = Object.assign({ch:0,unknown:false,shuffle:false,reverse:false,view:"card"}, store.get("prefs",{}));
+let st = Object.assign({ch:0,filter:"",shuffle:false,reverse:false,view:"card"}, store.get("prefs",{}));
+if(st.unknown){ st.filter="unknown"; delete st.unknown; }  // prefs saved before the review filter existed
+
+/* spaced review: each known card has a stage (lv) and a due day; the interval grows each time it is recalled on time */
+const INTERVALS=[1,3,7,14,30,60,120];
+const today=()=>{const d=new Date(); return Math.floor((d.getTime()-d.getTimezoneOffset()*60000)/86400000);};
+let srs = store.get("srs",{});
+// Cards marked known before scheduling existed get stage 1, spread over the next week so they don't all fall due at once.
+known.forEach(id=>{ if(!srs[id]){ let h=0; for(const ch of id) h=(h*31+ch.charCodeAt(0))%7; srs[id]={lv:1,due:today()+h}; } });
+store.set("srs",srs);
+const isDue=id=>known.has(id)&&srs[id]&&srs[id].due<=today();
+function learn(id){
+  const s=srs[id], t=today();
+  if(known.has(id)&&s&&s.due>t) return;  // reviewed early: keep the schedule
+  const lv=known.has(id)&&s ? Math.min(s.lv+1,INTERVALS.length) : 1;
+  srs[id]={lv,due:t+INTERVALS[lv-1]}; known.add(id);
+}
+function forget(id){ known.delete(id); delete srs[id]; }
+function dueLabel(id){ const d=srs[id]?srs[id].due-today():0; return d<=0?"今日復習":d===1?"明日復習":`${d}日後に復習`; }
 let deck=[], idx=0, shown=false;
 
 const $=id=>document.getElementById(id);
 const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-function savePrefs(){store.set("prefs",{ch:st.ch,unknown:st.unknown,shuffle:st.shuffle,reverse:st.reverse,view:st.view})}
-function saveKnown(){store.set("known",[...known])}
+function savePrefs(){store.set("prefs",{ch:st.ch,filter:st.filter,shuffle:st.shuffle,reverse:st.reverse,view:st.view})}
+function saveKnown(){store.set("known",[...known]); store.set("srs",srs)}
 function pool(){return ALL.filter(c=>!st.ch||c.ch===st.ch)}
 
 function buildDeck(keepId){
   let d = pool();
-  if(st.unknown) d = d.filter(c=>!known.has(c.id));
+  if(st.filter==="unknown") d = d.filter(c=>!known.has(c.id));
+  if(st.filter==="due") d = d.filter(c=>isDue(c.id));
   if(st.shuffle){d=d.slice();for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]]}}
   deck=d; idx=0;
   if(keepId){const k=deck.findIndex(c=>c.id===keepId); if(k>=0) idx=k;}
@@ -236,12 +270,21 @@ function buildDeck(keepId){
 
 function renderStrata(){
   $("strata").innerHTML = CH.map((c,i)=>{
-    const p = ALL.filter(x=>!i||x.ch===i), k=p.filter(x=>known.has(x.id)).length;
+    const p = ALL.filter(x=>!i||x.ch===i), k=p.filter(x=>known.has(x.id)).length, dn=p.filter(x=>isDue(x.id)).length;
     return `<button style="--k:${c.k}" aria-pressed="${st.ch===i}" data-ch="${i}">
-      <span class="t">${c.t}</span><span class="s">${c.s||"すべて"}</span><span class="n">${k}/${p.length}</span>
+      <span class="t">${c.t}</span><span class="s">${c.s||"すべて"}</span><span class="n">${k}/${p.length}</span>${dn?`<span class="dn" title="今日の復習">${dn}</span>`:""}
       <span class="bar"><i style="width:${p.length?k/p.length*100:0}%"></i></span></button>`;
   }).join("");
   document.documentElement.style.setProperty("--accent", st.ch?CH[st.ch].k:"var(--c1)");
+  const dueHere=pool().filter(c=>isDue(c.id)).length, dueAll=ALL.filter(c=>isDue(c.id)).length;
+  $("oDue").textContent=`復習 ${dueHere}`;
+  $("oDue").disabled=!dueHere&&st.filter!=="due";
+  const b=$("banner"), show=dueAll>0&&st.filter!=="due"&&st.view!=="add";
+  b.hidden=!show; b.style.display=show?"":"none";
+  if(show){
+    b.innerHTML=`<span>復習の時期が来た問題が <b>${dueAll}</b> 問あります</span><button class="btn" id="goReview">今日の復習を始める</button>`;
+    $("goReview").onclick=()=>{st.ch=0; st.filter="due"; st.view="card"; syncChips(); savePrefs(); buildDeck(); render();};
+  }
 }
 
 function renderCard(){
@@ -250,10 +293,12 @@ function renderCard(){
   const host=$("cardHost");
   if(!deck.length || idx>=deck.length){
     $("pos").textContent = deck.length?`${deck.length} / ${deck.length}`:"0 / 0";
-    host.innerHTML = `<div class="card done" style="cursor:default"><h2>${deck.length?"この範囲を一周しました":"未習得の問題はありません"}</h2>
-      <div style="color:var(--muted);font-size:.9rem">覚えた ${k} / ${p.length}</div>
-      <button class="btn good" id="restart">${deck.length?"もう一周する":"すべて表示する"}</button></div>`;
-    $("restart").onclick=()=>{ if(!deck.length){st.unknown=false;syncChips();savePrefs();} buildDeck(); render(); };
+    const rev=st.filter==="due", tm=today()+1, next=p.filter(c=>known.has(c.id)&&srs[c.id]&&srs[c.id].due===tm).length;
+    const title=rev?"今日の復習は終わりです":deck.length?"この範囲を一周しました":"未習得の問題はありません";
+    host.innerHTML = `<div class="card done" style="cursor:default"><h2>${title}</h2>
+      <div style="color:var(--muted);font-size:.9rem">覚えた ${k} / ${p.length}${rev?`　明日の復習 ${next} 問`:""}</div>
+      <button class="btn good" id="restart">${deck.length&&!rev?"もう一周する":"すべて表示する"}</button></div>`;
+    $("restart").onclick=()=>{ if(!deck.length||rev){st.filter="";syncChips();savePrefs();} buildDeck(); render(); };
     ["prev","again","good","next"].forEach(b=>$(b).disabled = b==="prev" ? !deck.length : true);
     return;
   }
@@ -262,7 +307,7 @@ function renderCard(){
   const front = st.reverse ? c.a.map(esc).join("<br>") : esc(c.q);
   const back = st.reverse ? [c.q] : c.a;
   host.innerHTML = `<div class="card" id="card" tabindex="0" role="button" aria-label="カードをめくる">
-    <div class="q"><div style="display:flex;justify-content:space-between;gap:8px"><span class="tag">${CH[c.ch].t}　No.${c.n}${c.added?'<span class="new">追加</span>':""}</span>${known.has(c.id)?'<span class="known-mark">覚えた</span>':""}</div>
+    <div class="q"><div style="display:flex;justify-content:space-between;gap:8px"><span class="tag">${CH[c.ch].t}　No.${c.n}${c.added?'<span class="new">追加</span>':""}</span>${known.has(c.id)?`<span class="known-mark${isDue(c.id)?" due":""}">${isDue(c.id)?"復習":"覚えた・"+dueLabel(c.id)}</span>`:""}</div>
     <div class="qtext"${st.reverse?' style="font-family:var(--body);font-weight:700;font-size:1.05rem"':""}>${front}</div></div>
     ${shown?`<div class="a"><ul>${back.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:`<div class="hint">タップして${st.reverse?"問題":"答え"}を表示</div>`}
   </div>`;
@@ -274,11 +319,11 @@ function renderCard(){
 
 function renderList(){
   const term=$("q").value.trim().toLowerCase();
-  let p=pool(); if(st.unknown) p=p.filter(c=>!known.has(c.id));
+  let p=pool(); if(st.filter==="unknown") p=p.filter(c=>!known.has(c.id)); if(st.filter==="due") p=p.filter(c=>isDue(c.id));
   if(term) p=p.filter(c=>(c.q+" "+c.a.join(" ")).toLowerCase().includes(term));
   $("lcount").textContent=`${p.length} 問`;
   $("list").innerHTML = p.length ? p.map(c=>`<div class="row"><div class="rq"><span class="tag">${CH[c.ch].t} ${c.n}</span>${c.added?'<span class="new">追加</span>':""}　${esc(c.q)}</div>
-    <button class="rk" data-id="${c.id}" aria-pressed="${known.has(c.id)}">${known.has(c.id)?"覚えた":"未習得"}</button>
+    <button class="rk${isDue(c.id)?" due":""}" data-id="${c.id}" aria-pressed="${known.has(c.id)}" title="${known.has(c.id)?dueLabel(c.id):""}">${!known.has(c.id)?"未習得":isDue(c.id)?"要復習":"覚えた"}</button>
     <div class="ra">${c.a.map(x=>`<div>${esc(x)}</div>`).join("")}</div></div>`).join("")
     : `<div class="row" style="color:var(--muted)">該当する問題はありません</div>`;
 }
@@ -295,7 +340,8 @@ function render(){
   isCard?renderCard():isAdd?renderAdd():renderList();
 }
 function syncChips(){
-  $("oUnknown").setAttribute("aria-pressed",st.unknown);
+  $("oUnknown").setAttribute("aria-pressed",st.filter==="unknown");
+  $("oDue").setAttribute("aria-pressed",st.filter==="due");
   $("oShuffle").setAttribute("aria-pressed",st.shuffle);
   $("oReverse").setAttribute("aria-pressed",st.reverse);
 }
@@ -304,28 +350,29 @@ function go(d){ idx=Math.max(0,Math.min(deck.length,idx+d)); shown=false; render
 function mark(ok){
   if(!shown||idx>=deck.length) return;
   const c=deck[idx];
-  ok?known.add(c.id):known.delete(c.id); saveKnown();
-  if(!ok && st.unknown){ /* keep it in rotation: move to end */ deck.push(deck.splice(idx,1)[0]); shown=false; renderStrata(); renderCard(); return; }
-  if(ok && st.unknown){ deck.splice(idx,1); shown=false; renderStrata(); renderCard(); return; }
+  ok?learn(c.id):forget(c.id); saveKnown();
+  if(!ok && st.filter){ /* keep it in rotation: move to end */ deck.push(deck.splice(idx,1)[0]); shown=false; renderStrata(); renderCard(); return; }
+  if(ok && st.filter){ deck.splice(idx,1); shown=false; renderStrata(); renderCard(); return; }
   renderStrata(); go(1);
 }
 
 $("strata").onclick=e=>{const b=e.target.closest("button"); if(!b) return; st.ch=+b.dataset.ch; savePrefs(); buildDeck(); render();};
-$("oUnknown").onclick=()=>{st.unknown=!st.unknown; syncChips(); savePrefs(); buildDeck(); render();};
+$("oUnknown").onclick=()=>{st.filter=st.filter==="unknown"?"":"unknown"; syncChips(); savePrefs(); buildDeck(); render();};
+$("oDue").onclick=()=>{st.filter=st.filter==="due"?"":"due"; syncChips(); savePrefs(); buildDeck(); render();};
 $("oShuffle").onclick=()=>{st.shuffle=!st.shuffle; syncChips(); savePrefs(); buildDeck(); render();};
 $("oReverse").onclick=()=>{st.reverse=!st.reverse; syncChips(); savePrefs(); shown=false; render();};
 $("vCard").onclick=()=>{st.view="card"; savePrefs(); render();};
 $("vList").onclick=()=>{st.view="list"; savePrefs(); render();};
 $("vAdd").onclick=()=>{st.view="add"; savePrefs(); render();};
 $("q").oninput=renderList;
-$("list").onclick=e=>{const b=e.target.closest(".rk"); if(!b) return; const id=b.dataset.id; known.has(id)?known.delete(id):known.add(id); saveKnown(); renderStrata(); renderList();};
+$("list").onclick=e=>{const b=e.target.closest(".rk"); if(!b) return; const id=b.dataset.id; known.has(id)?forget(id):learn(id); saveKnown(); renderStrata(); renderList();};
 $("prev").onclick=()=>go(-1); $("next").onclick=()=>go(1);
 $("again").onclick=()=>mark(false); $("good").onclick=()=>mark(true);
 
 function resetUI(){
   const box=$("resetBox");
   box.innerHTML=`<span class="confirm">${st.ch?CH[st.ch].t:"全章"}の記録を消しますか？<button class="link" id="rYes" style="color:var(--again)">消す</button><button class="link" id="rNo">やめる</button></span>`;
-  $("rYes").onclick=()=>{pool().forEach(c=>known.delete(c.id)); saveKnown(); restore(); buildDeck(); render();};
+  $("rYes").onclick=()=>{pool().forEach(c=>forget(c.id)); saveKnown(); restore(); buildDeck(); render();};
   $("rNo").onclick=restore;
 }
 function restore(){ $("resetBox").innerHTML=`<button class="link" id="reset">記録をリセット</button>`; $("reset").onclick=resetUI; }
@@ -419,7 +466,7 @@ $("doAdd").onclick=()=>{
 };
 $("customList").onclick=e=>{
   const b=e.target.closest("[data-del]"); if(!b) return;
-  custom=custom.filter(c=>c.id!==b.dataset.del); known.delete(b.dataset.del);
+  custom=custom.filter(c=>c.id!==b.dataset.del); forget(b.dataset.del);
   store.set("custom",custom); saveKnown(); buildAll(); buildDeck(); render();
 };
 $("exportCustom").onclick=()=>{
