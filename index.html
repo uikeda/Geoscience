@@ -189,7 +189,8 @@ select.box{width:auto;padding:8px 10px}
 .help summary::after{content:"＋";color:var(--muted);font-weight:400}
 .help[open] summary::after{content:"−"}
 .help .body{padding:0 16px 14px;display:flex;flex-direction:column;gap:10px;font-size:.82rem;line-height:1.75}
-.help h3{margin:0;font-size:.82rem;color:var(--ink)}
+.help .body>p{margin:0}
+.help h2{margin:0;font-size:.82rem;color:var(--ink)}
 .help p{margin:2px 0 0}
 .footrow{display:flex;justify-content:space-between;align-items:center;gap:4px 12px;flex-wrap:wrap}
 .link{background:none;border:0;color:var(--muted);font-size:.8rem;text-decoration:underline;text-underline-offset:3px;padding:8px 0}
@@ -313,13 +314,23 @@ select.box{width:auto;padding:8px 10px}
     <details class="help">
       <summary>使い方</summary>
       <div class="body">
-        <div><h3>カード</h3><p>「答えを見る」かカードをタップして答えを表示し、「覚えた」「まだ」で記録すると次の問題に進みます。カードを左右にスワイプすると、記録せずに前後の問題へ移動します。</p></div>
-        <div><h3>問題の状態</h3><p>未判定＝まだ記録していない、未習得＝最後に「まだ」を押した、覚えた、要復習＝「覚えた」問題のうち復習の時期が来たもの。上の「未判定・未習得・復習」で出す問題を絞り込めます。</p></div>
-        <div><h3>復習の予定</h3><p>「覚えた」問題は 1→3→7→14→30→60→120日後 に復習に出ます。時期が来る前に「覚えた」を押しても予定は変わりません。復習で「まだ」を押すと未習得に戻り、最初からやり直しです。</p></div>
-        <div><h3>押し間違えたとき</h3><p>記録した直後に下に出る「取り消す」で、直前の記録を元に戻せます。</p></div>
-        <div><h3>キーボード</h3><p>Space・Enter：答え　1：まだ　2：覚えた　← →：移動　Z：取り消し</p></div>
-        <div><h3>ホーム画面に追加</h3><p>ブラウザの共有ボタンやメニューから「ホーム画面に追加」すると、アプリのように全画面で使えます。一度開いておけば、電波のない場所でも使えます。</p></div>
-        <div><h3>記録の保存先</h3><p>記録と追加した問題は、このブラウザだけに保存されます。別の端末やブラウザとは共有されず、ブラウザのデータを消すと記録も消えます。</p></div>
+        <div><h2>カード</h2><p>「答えを見る」かカードをタップして答えを表示し、「覚えた」「まだ」で記録すると次の問題に進みます。カードを左右にスワイプすると、記録せずに前後の問題へ移動します。</p></div>
+        <div><h2>問題の状態</h2><p>未判定＝まだ記録していない、未習得＝最後に「まだ」を押した、覚えた、要復習＝「覚えた」問題のうち復習の時期が来たもの。上の「未判定・未習得・復習」で出す問題を絞り込めます。</p></div>
+        <div><h2>復習の予定</h2><p>「覚えた」問題は 1→3→7→14→30→60→120日後 に復習に出ます。時期が来る前に「覚えた」を押しても予定は変わりません。復習で「まだ」を押すと未習得に戻り、最初からやり直しです。</p></div>
+        <div><h2>押し間違えたとき</h2><p>記録した直後に下に出る「取り消す」で、直前の記録を元に戻せます。</p></div>
+        <div><h2>キーボード</h2><p>Space・Enter：答え　1：まだ　2：覚えた　← →：移動　Z：取り消し</p></div>
+        <div><h2>ホーム画面に追加</h2><p>ブラウザの共有ボタンやメニューから「ホーム画面に追加」すると、アプリのように全画面で使えます。一度開いておけば、電波のない場所でも使えます。iPhone・iPad では、ホーム画面のアプリと Safari で記録が共有されないので、下の「記録の引き継ぎ」で移してください。</p></div>
+        <div><h2>記録の保存先</h2><p>記録と追加した問題は、このブラウザだけに保存されます。別の端末やブラウザとは共有されず、ブラウザのデータを消すと記録も消えます。</p></div>
+      </div>
+    </details>
+    <details class="help" id="sync">
+      <summary>記録の引き継ぎ</summary>
+      <div class="body">
+        <p>別のブラウザや端末、ホーム画面に追加したアプリに、記録と追加した問題を移せます。移す元で「記録をコピー」し、移す先でこの欄に貼り付けてください。</p>
+        <div class="bar2"><button type="button" class="btn" id="exportRec">記録をコピー</button><span class="msg" id="exportRecMsg" role="status"></span></div>
+        <textarea class="box" id="importBox" rows="3" placeholder="コピーした記録をここに貼り付け" aria-label="引き継ぐ記録"></textarea>
+        <div class="msg" id="importMsg" role="status"></div>
+        <div class="bar2"><button type="button" class="btn good" id="importRec" disabled>この記録に置き換える</button></div>
       </div>
     </details>
     <div class="footrow"><span>記録はこのブラウザに保存されます</span><span id="resetBox"><button type="button" class="link" id="reset">記録をリセット</button></span></div>
@@ -378,9 +389,12 @@ if(!(st.ch>=0&&st.ch<CH.length)) st.ch=0;
 const INTERVALS=[1,3,7,14,30,60,120];
 const today=()=>{const d=new Date(); return Math.floor((d.getTime()-d.getTimezoneOffset()*60000)/86400000);};
 let srs = store.get("srs",{});
-// Cards marked known before scheduling existed get stage 1, spread over the next week so they don't all fall due at once.
-known.forEach(id=>{ if(!srs[id]){ let h=0; for(const ch of id) h=(h*31+ch.charCodeAt(0))%7; srs[id]={lv:1,due:today()+h}; } });
-store.set("srs",srs);
+// Cards marked known before scheduling existed (or brought in without one) get stage 1, spread over the next week so they don't all fall due at once.
+function scheduleKnown(){
+  known.forEach(id=>{ if(!srs[id]){ let h=0; for(const ch of id) h=(h*31+ch.charCodeAt(0))%7; srs[id]={lv:1,due:today()+h}; } });
+  store.set("srs",srs);
+}
+scheduleKnown();
 const isDue=id=>known.has(id)&&srs[id]&&srs[id].due<=today();
 function learn(id){
   const s=srs[id], t=today();
@@ -786,6 +800,33 @@ $("customList").onclick=e=>{
 $("exportCustom").onclick=()=>{
   const out=[1,2,3].map(ch=>{ const rs=ALL.filter(c=>c.added&&c.ch===ch); return rs.length?CH[ch].t+"\n"+rs.map(c=>`| ${c.q} | ${c.a.join("<br>")} |`).join("\n"):""; }).filter(Boolean).join("\n\n");
   copy(out,"exportMsg");
+};
+
+/* moving records between browsers: the whole study state as one JSON text */
+function backup(){ return JSON.stringify({app:"chigaku",v:1,known:[...known],srs,missed:[...missed],custom}); }
+let incoming=null;
+function readBackup(text){
+  try{
+    const d=JSON.parse(text.trim());
+    if(d.app!=="chigaku"||!Array.isArray(d.known)||!Array.isArray(d.missed)||!d.srs||typeof d.srs!=="object") return null;
+    const cust=(Array.isArray(d.custom)?d.custom:[]).filter(c=>c&&typeof c.id==="string"&&c.ch>=1&&c.ch<=3&&typeof c.q==="string"&&Array.isArray(c.a));
+    return {known:d.known.filter(x=>typeof x==="string"), missed:d.missed.filter(x=>typeof x==="string"), srs:d.srs, custom:cust};
+  }catch(e){ return null; }
+}
+$("exportRec").onclick=()=>copy(backup(),"exportRecMsg");
+$("importBox").oninput=()=>{
+  const t=$("importBox").value, m=$("importMsg");
+  incoming=t.trim()?readBackup(t):null;
+  m.className="msg"+(t.trim()&&!incoming?" err":"");
+  m.textContent=!t.trim()?"":incoming?`覚えた ${incoming.known.length}・未習得 ${incoming.missed.length}・追加した問題 ${incoming.custom.length} の記録です。置き換えると、今のこのブラウザの記録は消えます。`:"記録として読み取れません。「記録をコピー」でコピーしたものをそのまま貼り付けてください。";
+  $("importRec").disabled=!incoming;
+};
+$("importRec").onclick=()=>{
+  if(!incoming) return;
+  known=new Set(incoming.known); missed=new Set(incoming.missed); srs=incoming.srs; custom=incoming.custom;
+  scheduleKnown(); store.set("custom",custom); saveKnown(); buildAll(); posMap={}; store.set("pos",posMap); buildDeck("fresh"); render();
+  incoming=null; $("importBox").value=""; $("importRec").disabled=true;
+  $("importMsg").textContent="記録を読み込みました"; $("importMsg").className="msg ok";
 };
 
 document.addEventListener("keydown",e=>{
