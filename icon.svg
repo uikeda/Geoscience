@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<!-- Folded strata under the sea, in the chapter colours. Full-bleed and inside the maskable safe zone. -->
+<defs><clipPath id="c"><rect x="96" y="104" width="320" height="304" rx="56"/></clipPath></defs>
+<rect width="512" height="512" fill="#1d2421"/>
+<g clip-path="url(#c)"><rect x="80" y="80" width="352" height="352" fill="#6fb1d2"/>
+<path d="M80 214C176 214 196 150 256 150S336 214 432 214V432H80Z" fill="#d6b05e"/>
+<path d="M80 270C176 270 196 206 256 206S336 270 432 270V432H80Z" fill="#d08a70"/>
+<path d="M80 326C176 326 196 262 256 262S336 326 432 326V432H80Z" fill="#d6b05e"/>
+<path d="M80 382C176 382 196 318 256 318S336 382 432 382V432H80Z" fill="#b06a52"/>
+</g></svg>

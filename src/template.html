@@ -2,212 +2,330 @@
 <html lang="ja">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="地学問題集をめくって覚える単語帳。忘却曲線に沿って復習を出します。">
+<meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#eef0ec" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#141917" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="地学単語帳">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>地学 単語帳</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Shippori+Mincho+B1:wght@600;800&display=swap">
+<!-- Loaded without blocking the first paint; the system fonts in --display/--body stand in until it arrives (or offline). -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Shippori+Mincho+B1:wght@600;800&display=swap" media="print" onload="this.media='all'">
 <style>
-/* Layout: one centered column — chapter strata tabs, then a single card with its controls beneath */
+/* Layout: one centered column — chapter strata tabs, the question filter, then a single card with its controls beneath.
+   On phones the card controls stick to the bottom edge, within thumb reach. */
 :root{
-  --bg:#eef0ec; --surface:#fbfcfa; --ink:#1d2421; --muted:#5d6a64; --line:#d3d9d4;
-  --c1:#7a4b3a; --c2:#a07a2c; --c3:#2f6a86; --accent:var(--c1);
-  --good:#2f7a4f; --again:#b0473a;
+  --bg:#eef0ec; --surface:#fbfcfa; --sunk:#e8ebe7; --ink:#1d2421; --muted:#5d6a64; --line:#d3d9d4;
+  --c1:#7a4b3a; --c2:#856115; --c3:#2f6a86; --accent:var(--c1);
+  --good:#2b7049; --on-good:#fff; --again:#b0473a;
+  --shadow:0 1px 2px rgb(29 36 33 / .06),0 10px 28px -16px rgb(29 36 33 / .28);
   --display:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
   --body:"BIZ UDPGothic","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#141917; --surface:#1d2421; --ink:#e6ebe7; --muted:#9aa7a0; --line:#323d38;
-  --c1:#d08a70; --c2:#d6b05e; --c3:#6fb1d2; --good:#6cc08c; --again:#e07c6e; color-scheme:dark}}
+  --bg:#141917; --surface:#1d2421; --sunk:#0f1311; --ink:#e6ebe7; --muted:#9aa7a0; --line:#323d38;
+  --c1:#d08a70; --c2:#d6b05e; --c3:#6fb1d2; --good:#6cc08c; --on-good:#10251a; --again:#e07c6e;
+  --shadow:0 1px 2px rgb(0 0 0 / .35),0 12px 30px -16px rgb(0 0 0 / .8); color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#141917; --surface:#1d2421; --ink:#e6ebe7; --muted:#9aa7a0; --line:#323d38;
-  --c1:#d08a70; --c2:#d6b05e; --c3:#6fb1d2; --good:#6cc08c; --again:#e07c6e; color-scheme:dark}
-html,body{height:100%}
+  --bg:#141917; --surface:#1d2421; --sunk:#0f1311; --ink:#e6ebe7; --muted:#9aa7a0; --line:#323d38;
+  --c1:#d08a70; --c2:#d6b05e; --c3:#6fb1d2; --good:#6cc08c; --on-good:#10251a; --again:#e07c6e;
+  --shadow:0 1px 2px rgb(0 0 0 / .35),0 12px 30px -16px rgb(0 0 0 / .8); color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.7;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));
   -webkit-tap-highlight-color:transparent}
-button{touch-action:manipulation}
-.qtext,.a li,.row .rq,.row .ra{overflow-wrap:anywhere;line-break:strict}
-.wrap{max-width:640px;margin:0 auto;padding-block:20px 40px;display:flex;flex-direction:column;gap:16px}
-header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
-h1{font-family:var(--display);font-weight:800;font-size:1.6rem;margin:0;letter-spacing:.04em;text-wrap:balance}
-.views{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
-.views button{border:0;background:none;color:var(--muted);font:inherit;font-size:.85rem;padding:4px 14px;border-radius:999px;cursor:pointer}
-.views button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
-/* strata tabs */
-.strata{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.strata button{font:inherit;border:0;border-right:1px solid var(--line);background:var(--surface);color:var(--ink);
-  padding:8px 6px 6px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:2px;position:relative;min-width:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation}
+button:disabled{cursor:default}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.qtext,.a li,.rq,.ra{overflow-wrap:anywhere;line-break:strict}
+.wrap{max-width:640px;margin:0 auto;padding-top:18px;display:flex;flex-direction:column;gap:14px;min-height:100vh;min-height:100dvh}
+.main{display:flex;flex-direction:column;gap:14px}
+.view{display:flex;flex-direction:column;gap:12px}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+h1{font-family:var(--display);font-weight:800;font-size:1.5rem;margin:0;letter-spacing:.04em;line-height:1.2;white-space:nowrap}
+.views{display:flex;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
+.views button{border:0;background:none;color:var(--muted);font-size:.85rem;padding:6px 15px;border-radius:999px;min-height:36px;white-space:nowrap}
+.views button[aria-pressed="true"]{background:var(--ink);color:var(--bg);font-weight:700}
+
+/* strata tabs: one per chapter, with progress (覚えた / 未習得) */
+.strata{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.strata button{border:0;border-right:1px solid var(--line);background:none;color:var(--ink);padding:8px 8px 7px;text-align:left;
+  display:flex;flex-direction:column;min-width:0}
 .strata button:last-child{border-right:0}
-.strata .t{font-weight:700;font-size:.9rem}
-.strata .s,.strata .n{font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+.strata .t{font-weight:700;font-size:.88rem;line-height:1.5;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.strata .s,.strata .n{font-size:.7rem;color:var(--muted);line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .strata .n{font-variant-numeric:tabular-nums}
-.strata .dn{position:absolute;top:6px;right:6px;font-size:.66rem;font-weight:700;line-height:1;color:var(--surface);background:var(--again);
-  border-radius:999px;padding:3px 6px;font-variant-numeric:tabular-nums}
-.strata .bar{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:4px}
-.strata .bar i{display:block;height:100%;background:var(--k)}
-.strata button[aria-pressed="true"]{box-shadow:inset 0 -3px 0 var(--k);background:color-mix(in srgb,var(--k) 9%,var(--surface))}
-.opts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.chip{font:inherit;font-size:.82rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);
-  padding:4px 12px;border-radius:999px;cursor:pointer}
-.chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);font-weight:700}
-.foot{display:flex;justify-content:flex-end}
-.link{font:inherit;font-size:.8rem;background:none;border:0;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-/* card */
-.meta{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;min-height:300px;
-  display:flex;flex-direction:column;cursor:pointer;user-select:none;overflow:hidden}
-.card .q{padding:28px 22px 22px;flex:1;display:flex;flex-direction:column;gap:10px;justify-content:center}
-.tag{font-size:.72rem;letter-spacing:.12em;color:var(--accent);font-weight:700}
-.qtext{word-break:auto-phrase;font-family:var(--display);font-weight:800;font-size:1.35rem;line-height:1.55;text-wrap:balance}
-.card .a{border-top:1px dashed var(--line);padding:18px 22px 22px;background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
-.a ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
-.a li{font-size:1rem}
-.hint{padding:14px 22px;border-top:1px dashed var(--line);color:var(--muted);font-size:.85rem;text-align:center}
-.known-mark{font-size:.72rem;color:var(--good);font-weight:700;white-space:nowrap}
-.known-mark.due,.known-mark.missed{color:var(--again)}
-.known-mark.new{color:var(--muted);font-weight:400}
-.banner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
-  background:color-mix(in srgb,var(--again) 8%,var(--surface));border:1px solid color-mix(in srgb,var(--again) 35%,var(--line));
-  border-radius:12px;padding:10px 14px;font-size:.9rem}
-.banner b{font-variant-numeric:tabular-nums}
-.banner .btn{padding:6px 14px;font-size:.85rem;border-color:var(--again);color:var(--again)}
-.chip.rev[aria-pressed="true"]{border-color:var(--again);color:var(--again)}
-.chip:disabled{opacity:.4;cursor:default}
-.row .rk.due,.row .rk.missed{color:var(--again);border-color:var(--again)}
-.controls{display:grid;grid-template-columns:auto 1fr 1fr auto;gap:8px}
-.btn{font:inherit;font-weight:700;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:12px;cursor:pointer}
-.btn.again{color:var(--again);border-color:color-mix(in srgb,var(--again) 45%,var(--line))}
-.btn.good{background:var(--good);border-color:var(--good);color:var(--surface)}
-.btn:disabled{opacity:.35;cursor:default}
-.keys{font-size:.75rem;color:var(--muted);text-align:center}
-.done{text-align:center;padding:40px 20px;display:flex;flex-direction:column;gap:12px;align-items:center}
-.done h2{font-family:var(--display);margin:0}
-/* list */
-.search{font:inherit;font-size:16px;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);box-sizing:border-box}
-.list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
-.row{padding:12px 16px;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr auto;gap:4px 10px}
+.strata .dn{margin-left:auto;font-size:.64rem;line-height:1;color:var(--surface);background:var(--again);border-radius:999px;padding:3px 6px;font-variant-numeric:tabular-nums}
+.strata button[aria-pressed="true"]{background:color-mix(in srgb,var(--k) 10%,var(--surface));box-shadow:inset 0 -3px 0 var(--k)}
+.meter{display:flex;height:4px;border-radius:2px;overflow:hidden;background:var(--line);margin-top:5px}
+.meter i{height:100%}
+.meter .mk{background:var(--k)}
+.meter .mm{background:color-mix(in srgb,var(--again) 70%,var(--surface))}
+
+/* review banner and the question filter */
+.banner{display:flex;align-items:center;gap:10px;padding:5px 5px 5px 14px;font-size:.88rem;border-radius:12px;
+  background:color-mix(in srgb,var(--again) 9%,var(--surface));border:1px solid color-mix(in srgb,var(--again) 35%,var(--line))}
+.banner .msg{flex:1;min-width:0}
+.banner b{color:var(--again);font-size:1.08em;font-variant-numeric:tabular-nums}
+.banner button{border:0;background:var(--again);color:var(--surface);font-weight:700;font-size:.85rem;border-radius:9px;padding:7px 14px;min-height:38px;white-space:nowrap}
+.seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;background:var(--sunk);border-radius:12px;padding:3px}
+.seg button{border:0;background:none;border-radius:9px;min-height:46px;padding:4px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  line-height:1.3;color:var(--muted)}
+.seg .l{font-size:.82rem}
+.seg .c{font-size:.72rem;font-variant-numeric:tabular-nums}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgb(0 0 0 / .08),0 0 0 1px var(--line)}
+.seg button[aria-pressed="true"] .l{font-weight:700}
+.seg button.hot .c{color:var(--again);font-weight:700}
+.seg button:disabled{opacity:.45}
+
+/* card view */
+.meta{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px}
+.pos{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.toggles{display:flex;gap:6px}
+.tog{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--surface);color:var(--muted);
+  border-radius:999px;padding:3px 11px;font-size:.76rem;min-height:32px;white-space:nowrap}
+.tog svg{width:14px;height:14px;flex:none}
+.tog[aria-pressed="true"]{color:var(--accent);font-weight:700;border-color:color-mix(in srgb,var(--accent) 55%,var(--line));
+  background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
+.track{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:-8px}
+.track i{display:block;height:100%;width:0;background:var(--accent)}
+.card{display:flex;flex-direction:column;min-height:300px;min-height:clamp(240px,44svh,380px);background:var(--surface);
+  border:1px solid var(--line);border-radius:16px;box-shadow:inset 0 4px 0 var(--k),var(--shadow);
+  cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:pan-y;overflow:hidden}
+.card .q{flex:1;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:25px 22px 24px}
+.chead{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:24px}
+.tag{font-size:.72rem;letter-spacing:.12em;color:var(--k);font-weight:700;white-space:nowrap}
+.added{font-size:.66rem;letter-spacing:0;color:var(--k);border:1px solid currentColor;border-radius:4px;padding:0 4px;margin-left:6px;font-weight:700}
+.st{font-size:.7rem;font-weight:700;line-height:1.5;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.st.known{color:var(--good);background:color-mix(in srgb,var(--good) 10%,transparent)}
+.st.due,.st.missed{color:var(--again);background:color-mix(in srgb,var(--again) 10%,transparent)}
+.st.new{color:var(--muted);background:color-mix(in srgb,var(--muted) 10%,transparent);font-weight:400}
+.qtext{font-family:var(--display);font-weight:800;font-size:1.4rem;line-height:1.6;word-break:auto-phrase;text-wrap:balance}
+.qtext.rev{font-family:var(--body);font-weight:700;font-size:1.08rem;line-height:1.75;text-wrap:pretty}
+.card .a{border-top:1px dashed var(--line);padding:18px 22px 22px;background:color-mix(in srgb,var(--k) 6%,var(--surface))}
+.a ul{margin:0;padding:0;list-style:none}
+.a li{font-size:1.05rem;line-height:1.8}
+.a li+li{margin-top:10px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
+.hint{padding:13px 16px;border-top:1px dashed var(--line);color:var(--muted);font-size:.82rem;text-align:center}
+.card.done{cursor:default;align-items:center;justify-content:center;text-align:center;gap:12px;padding:28px 20px}
+.done h2{font-family:var(--display);font-weight:800;font-size:1.4rem;line-height:1.5;margin:0}
+.done p{margin:0;color:var(--muted);font-size:.88rem}
+.done .meter{width:100%;max-width:300px;height:8px;border-radius:4px;margin:2px 0 0}
+.legend{display:flex;flex-wrap:wrap;justify-content:center;gap:2px 14px;font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
+.acts{display:flex;flex-direction:column;gap:8px;width:100%;max-width:300px;margin-top:6px}
+.controls{position:relative;display:grid;grid-template-columns:56px 1fr 1fr 56px;gap:8px}
+.controls .reveal{grid-column:2/4}
+.controls:not(.shown) .again,.controls:not(.shown) .good,.controls.shown .reveal,
+.controls.end .reveal,.controls.end .again,.controls.end .good{display:none}
+.controls.end #next{visibility:hidden}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:700;border-radius:12px;padding:10px 12px;min-height:50px}
+.btn:disabled{opacity:.35}
+.btn.nav{font-size:1.1rem;padding:0}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.btn.again{color:var(--again);border-color:color-mix(in srgb,var(--again) 50%,var(--line));background:color-mix(in srgb,var(--again) 5%,var(--surface))}
+.btn.good{background:var(--good);border-color:var(--good);color:var(--on-good)}
+.snack{position:absolute;left:50%;bottom:calc(100% + 10px);transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:10px;
+  max-width:calc(100vw - 32px);background:var(--ink);color:var(--bg);border-radius:999px;padding:5px 5px 5px 16px;font-size:.82rem;
+  white-space:nowrap;box-shadow:0 8px 24px -8px rgb(0 0 0 / .45)}
+.snack span{overflow:hidden;text-overflow:ellipsis}
+.snack button{border:0;background:color-mix(in srgb,var(--bg) 20%,transparent);color:var(--bg);font-weight:700;border-radius:999px;padding:5px 12px;min-height:32px;white-space:nowrap}
+.keys{margin:0;font-size:.74rem;color:var(--muted);text-align:center}
+.keys kbd{font-family:inherit;font-size:.95em;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--surface)}
+
+/* list view */
+.searchbar{position:sticky;top:0;z-index:2;background:var(--bg);padding:8px 0;margin:-8px 0}
+.searchbar svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted);pointer-events:none}
+.search{width:100%;font-size:16px;padding:11px 14px 11px 38px;border:1px solid var(--line);border-radius:12px;background:var(--surface);-webkit-appearance:none;appearance:none}
+.list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:13px 16px;border-bottom:1px solid var(--line)}
 .row:last-child{border-bottom:0}
-.row .rq{font-weight:700;min-width:0}
-.row .ra{grid-column:1/-1;color:var(--muted);font-size:.9rem;min-width:0}
-.row .ra div+div{margin-top:2px}
-.row .rk{font-size:.75rem;cursor:pointer;border:1px solid var(--line);background:none;color:var(--muted);border-radius:999px;padding:1px 10px;font:inherit;font-size:.72rem;height:fit-content}
-.row .rk[aria-pressed="true"]{color:var(--good);border-color:var(--good)}
-.confirm{display:flex;gap:8px;align-items:center;font-size:.82rem;flex-wrap:wrap}
-/* add */
-.step{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.rq{font-weight:700;line-height:1.6}
+.rtag{color:var(--k);font-size:.72rem;letter-spacing:.06em;margin-right:8px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ra{grid-column:1/-1;color:var(--muted);font-size:.9rem;line-height:1.75}
+.ra div+div{margin-top:3px}
+.rk{align-self:start;border:1px solid var(--line);background:none;color:var(--muted);border-radius:999px;padding:3px 11px;font-size:.72rem;min-height:30px;white-space:nowrap}
+.rk.known{color:var(--good);border-color:color-mix(in srgb,var(--good) 55%,var(--line))}
+.rk.due,.rk.missed,.rk.del{color:var(--again);border-color:color-mix(in srgb,var(--again) 55%,var(--line))}
+.peek{grid-column:1/-1;justify-self:start;border:1px dashed var(--line);background:none;color:var(--muted);border-radius:8px;padding:4px 12px;font-size:.8rem;min-height:32px}
+mark{background:color-mix(in srgb,var(--c2) 30%,transparent);color:var(--ink);border-radius:3px;padding:0 1px}
+.empty{padding:28px 16px;text-align:center;color:var(--muted)}
+
+/* add view */
+.step{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
 .step h2{font-size:.95rem;margin:0;display:flex;gap:8px;align-items:baseline}
 .step h2 b{font-family:var(--display);color:var(--accent)}
 .step p{margin:0;font-size:.85rem;color:var(--muted)}
-.box{font:inherit;font-size:16px;width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
-  background:var(--bg);color:var(--ink);resize:vertical;line-height:1.6}
+.step code{font-size:.85em;background:var(--sunk);border-radius:4px;padding:1px 5px}
+.box{font-size:16px;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);resize:vertical;line-height:1.6}
 .box[readonly]{font-size:.8rem;color:var(--muted)}
-.bar2{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.bar2 .btn{padding:8px 14px;font-size:.88rem}
 select.box{width:auto;padding:8px 10px}
+.bar2{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bar2 .btn{min-height:44px;padding:8px 16px;font-size:.88rem}
 .msg{font-size:.82rem}
 .msg.err{color:var(--again)}.msg.ok{color:var(--good)}
 .pv{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden;max-height:320px;overflow-y:auto}
 .pv .row{grid-template-columns:1fr}
 .pv .row.dup{opacity:.5}
-.list[hidden],.pv[hidden]{display:none}
-.new{font-size:.68rem;color:var(--accent);border:1px solid currentColor;border-radius:4px;padding:0 4px;margin-left:6px;font-weight:700;vertical-align:1px}
-/* phone: larger tap targets, controls pinned within thumb reach */
+
+/* footer: help and reset */
+.foot{margin-top:auto;padding:12px 0 calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;font-size:.8rem;color:var(--muted)}
+.help{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.help summary{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;cursor:pointer;color:var(--ink);font-weight:700;font-size:.85rem;list-style:none}
+.help summary::-webkit-details-marker{display:none}
+.help summary::after{content:"＋";color:var(--muted);font-weight:400}
+.help[open] summary::after{content:"−"}
+.help .body{padding:0 16px 14px;display:flex;flex-direction:column;gap:10px;font-size:.82rem;line-height:1.75}
+.help h3{margin:0;font-size:.82rem;color:var(--ink)}
+.help p{margin:2px 0 0}
+.footrow{display:flex;justify-content:space-between;align-items:center;gap:4px 12px;flex-wrap:wrap}
+.link{background:none;border:0;color:var(--muted);font-size:.8rem;text-decoration:underline;text-underline-offset:3px;padding:8px 0}
+.confirm{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
 @media (max-width:560px){
-  .wrap{padding-block:14px 0;gap:12px}
-  h1{font-size:1.35rem}
-  .views button{padding:7px 16px}
-  .strata button{padding:8px 7px 6px}
-  .chip{padding:7px 14px;font-size:.85rem}
-  .link{padding:8px 0}
-  .card{min-height:240px}
-  .card .q{padding:22px 18px 18px}
-  .qtext{font-size:1.2rem}
-  .card .a{padding:16px 18px 18px}
-  .hint{padding:16px 18px}
-  .controls{position:sticky;bottom:0;z-index:1;margin-inline:-16px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));
-    background:linear-gradient(to bottom,transparent,var(--bg) 10px)}
-  .btn{padding:14px 10px;min-height:50px}
-  .controls .btn:first-child,.controls .btn:last-child{min-width:52px}
-  .foot{padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
-  .row{padding:14px 14px}
-  .row .rk{padding:5px 12px;font-size:.75rem}
+  .wrap,.main{gap:10px}
+  .wrap{padding-top:10px}
+  h1{font-size:1.2rem}
+  .views button{padding:5px 12px;font-size:.8rem;min-height:34px}
+  .strata button{padding:7px 7px 6px}
+  .card .q{padding:21px 18px 20px}
+  .qtext{font-size:1.24rem}
+  .qtext.rev{font-size:1.02rem}
+  .card .a{padding:16px 18px 20px}
+  .a li{font-size:1rem}
+  .row{padding:13px 14px}
+}
+@media (max-width:350px){
+  h1{font-size:1.05rem;letter-spacing:.02em}
+  .views button{padding:5px 9px}
+  .seg .l{font-size:.76rem}
+  .tog{padding:3px 8px}
+}
+/* phones and tablets: card controls pinned to the bottom edge */
+@media (max-width:560px),(hover:none) and (pointer:coarse){
+  .controls{position:sticky;bottom:0;z-index:2;margin-inline:-16px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));
+    background:linear-gradient(to bottom,transparent,var(--bg) 12px)}
 }
 @media (hover:none) and (pointer:coarse){.keys{display:none}}
-@media (hover:hover) and (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.card:hover{border-color:var(--accent)}}
+@media (hover:hover){.card:not(.done):hover{border-color:color-mix(in srgb,var(--k) 45%,var(--line))}}
+@media (prefers-reduced-motion:no-preference){
+  .card.in-next{animation:in-next .24s cubic-bezier(.2,.8,.2,1)}
+  .card.in-prev{animation:in-prev .24s cubic-bezier(.2,.8,.2,1)}
+  .card .a{animation:fade-in .2s ease-out}
+  .card.snap{transition:transform .2s cubic-bezier(.2,.8,.2,1)}
+  .card.fly{transition:transform .15s ease-in,opacity .15s ease-in;opacity:0}
+  .snack{animation:snack-in .2s ease-out}
+  .track i{transition:width .25s}
+  @keyframes in-next{from{opacity:0;transform:translateX(32px)}}
+  @keyframes in-prev{from{opacity:0;transform:translateX(-32px)}}
+  @keyframes fade-in{from{opacity:0;transform:translateY(-4px)}}
+  @keyframes snack-in{from{opacity:0;transform:translate(-50%,6px)}}
+}
 </style>
 
 <div class="wrap">
-  <header>
+  <header class="top">
     <h1>地学 単語帳</h1>
-    <div class="views" role="group" aria-label="表示">
-      <button id="vCard" aria-pressed="true">カード</button>
-      <button id="vList" aria-pressed="false">一覧</button>
-      <button id="vAdd" aria-pressed="false">追加</button>
+    <div class="views" role="group" aria-label="画面">
+      <button type="button" id="vCard" aria-pressed="true">カード</button>
+      <button type="button" id="vList" aria-pressed="false">一覧</button>
+      <button type="button" id="vAdd" aria-pressed="false">追加</button>
     </div>
   </header>
 
+  <main class="main">
   <nav class="strata" id="strata" aria-label="章"></nav>
-
   <div class="banner" id="banner" hidden></div>
+  <div class="seg" id="seg" role="group" aria-label="出題する問題"></div>
 
-  <div class="opts">
-    <button class="chip" id="oNew" aria-pressed="false">未判定</button>
-    <button class="chip" id="oMissed" aria-pressed="false">未習得</button>
-    <button class="chip rev" id="oDue" aria-pressed="false">復習</button>
-    <button class="chip" id="oShuffle" aria-pressed="false">シャッフル</button>
-    <button class="chip" id="oReverse" aria-pressed="false">答え→問題</button>
-  </div>
-
-  <section id="cardView" style="display:flex;flex-direction:column;gap:12px">
-    <div class="meta"><span id="pos"></span><span id="score"></span></div>
+  <section class="view" id="cardView">
+    <div class="meta">
+      <span class="pos" id="pos" aria-live="polite"></span>
+      <div class="toggles">
+        <button type="button" class="tog" id="oShuffle" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>シャッフル</button>
+        <button type="button" class="tog" id="oReverse" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg>答え→問題</button>
+      </div>
+    </div>
+    <div class="track" aria-hidden="true"><i id="track"></i></div>
     <div id="cardHost"></div>
     <div class="controls" id="controls">
-      <button class="btn" id="prev" aria-label="前へ">←</button>
-      <button class="btn again" id="again">まだ</button>
-      <button class="btn good" id="good">覚えた</button>
-      <button class="btn" id="next" aria-label="次へ">→</button>
+      <button type="button" class="btn nav" id="prev" aria-label="前の問題">←</button>
+      <button type="button" class="btn primary reveal" id="reveal">答えを見る</button>
+      <button type="button" class="btn again" id="again">まだ</button>
+      <button type="button" class="btn good" id="good">覚えた</button>
+      <button type="button" class="btn nav" id="next" aria-label="次の問題">→</button>
+      <div class="snack" id="snack" role="status" hidden></div>
     </div>
-    <div id="srsNote" style="margin-top:-4px;font-size:.75rem;color:var(--muted);text-align:center">「覚えた」問題は 1→3→7→14→30→60→120日後 に復習を出します。復習で「まだ」を押すと最初からやり直し</div>
-    <div class="keys">Space：答えを表示　1：まだ　2：覚えた　←→：移動</div>
+    <p class="keys"><kbd>Space</kbd> 答え　<kbd>1</kbd> まだ　<kbd>2</kbd> 覚えた　<kbd>←</kbd><kbd>→</kbd> 移動　<kbd>Z</kbd> 取り消し</p>
   </section>
 
-  <section id="listView" hidden style="flex-direction:column;gap:12px">
-    <input class="search" id="q" type="search" placeholder="問題・解答を検索">
-    <div class="meta"><span id="lcount"></span></div>
+  <section class="view" id="listView" hidden>
+    <div class="searchbar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input class="search" id="q" type="search" placeholder="問題・解答を検索" aria-label="問題・解答を検索" enterkeyhint="search" autocomplete="off">
+    </div>
+    <div class="meta"><span class="pos" id="lcount" aria-live="polite"></span>
+      <button type="button" class="tog" id="oHide" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.1A9.8 9.8 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-3.2 4.1M6.3 6.3C3.9 8 2.5 12 2.5 12s3.5 7 9.5 7a9.6 9.6 0 0 0 5.7-1.8"/></svg>答えを隠す</button>
+    </div>
     <div class="list" id="list"></div>
   </section>
 
-  <section id="addView" hidden style="flex-direction:column;gap:12px">
+  <section class="view" id="addView" hidden>
     <div class="step">
       <h2><b>1</b>AIに指示文を渡す</h2>
       <p>ChatGPT・Claude・Gemini などのチャットに、この指示文と資料（教科書の文章や写真、メモ）を一緒に送ってください。</p>
-      <textarea class="box" id="prompt" rows="6" readonly></textarea>
-      <div class="bar2"><button class="btn" id="copyPrompt">指示文をコピー</button><span class="msg" id="copyMsg"></span></div>
+      <textarea class="box" id="prompt" rows="5" readonly aria-label="AIに渡す指示文"></textarea>
+      <div class="bar2"><button type="button" class="btn" id="copyPrompt">指示文をコピー</button><span class="msg" id="copyMsg" role="status"></span></div>
     </div>
     <div class="step">
       <h2><b>2</b>AIの返答を貼り付ける</h2>
       <p><code>| 問題 | 解答 |</code> の行を読み取ります。前後の説明文や表の見出しは無視します。</p>
-      <textarea class="box" id="paste" rows="7" placeholder="| ジオイドとは | 平均海水面を陸域にも延長した仮想の面 |"></textarea>
+      <textarea class="box" id="paste" rows="7" placeholder="| ジオイドとは | 平均海水面を陸域にも延長した仮想の面 |" aria-label="AIの返答"></textarea>
       <div class="bar2"><label for="addCh" style="font-size:.85rem">追加先</label><select class="box" id="addCh"></select></div>
-      <div class="msg" id="pvMsg"></div>
+      <div class="msg" id="pvMsg" role="status"></div>
       <div class="pv" id="pv" hidden></div>
-      <div class="bar2"><button class="btn good" id="doAdd" disabled>追加する</button></div>
+      <div class="bar2"><button type="button" class="btn good" id="doAdd" disabled>追加する</button></div>
     </div>
     <div class="step">
       <h2><b>3</b>追加した問題</h2>
       <p>追加した問題は、このブラウザだけに保存されます。別の端末で使うときや、問題集の元データ（<code>src/ch*.md</code>）に入れるときは、書き出したテキストを貼り付けてください。</p>
       <div class="msg" id="customCount"></div>
       <div class="list" id="customList"></div>
-      <div class="bar2"><button class="btn" id="exportCustom">書き出しをコピー</button><span class="msg" id="exportMsg"></span></div>
+      <div class="bar2"><button type="button" class="btn" id="exportCustom">書き出しをコピー</button><span class="msg" id="exportMsg" role="status"></span></div>
     </div>
   </section>
+  </main>
 
-  <footer class="foot"><span id="resetBox"><button class="link" id="reset">記録をリセット</button></span></footer>
+  <footer class="foot">
+    <details class="help">
+      <summary>使い方</summary>
+      <div class="body">
+        <div><h3>カード</h3><p>「答えを見る」かカードをタップして答えを表示し、「覚えた」「まだ」で記録すると次の問題に進みます。カードを左右にスワイプすると、記録せずに前後の問題へ移動します。</p></div>
+        <div><h3>問題の状態</h3><p>未判定＝まだ記録していない、未習得＝最後に「まだ」を押した、覚えた、要復習＝「覚えた」問題のうち復習の時期が来たもの。上の「未判定・未習得・復習」で出す問題を絞り込めます。</p></div>
+        <div><h3>復習の予定</h3><p>「覚えた」問題は 1→3→7→14→30→60→120日後 に復習に出ます。時期が来る前に「覚えた」を押しても予定は変わりません。復習で「まだ」を押すと未習得に戻り、最初からやり直しです。</p></div>
+        <div><h3>押し間違えたとき</h3><p>記録した直後に下に出る「取り消す」で、直前の記録を元に戻せます。</p></div>
+        <div><h3>キーボード</h3><p>Space・Enter：答え　1：まだ　2：覚えた　← →：移動　Z：取り消し</p></div>
+        <div><h3>ホーム画面に追加</h3><p>ブラウザの共有ボタンやメニューから「ホーム画面に追加」すると、アプリのように全画面で使えます。一度開いておけば、電波のない場所でも使えます。</p></div>
+        <div><h3>記録の保存先</h3><p>記録と追加した問題は、このブラウザだけに保存されます。別の端末やブラウザとは共有されず、ブラウザのデータを消すと記録も消えます。</p></div>
+      </div>
+    </details>
+    <div class="footrow"><span>記録はこのブラウザに保存されます</span><span id="resetBox"><button type="button" class="link" id="reset">記録をリセット</button></span></div>
+  </footer>
 </div>
+<div class="sr" id="live" aria-live="polite"></div>
 
 <script>
 const DATA = __DATA__;
@@ -223,19 +341,38 @@ const store = {
 };
 // Added questions live only in this browser. Their IDs ("1-u…") never collide with or shift the built-in "章-番号" IDs.
 let custom = store.get("custom",[]);
-const ALL = [];
+const ALL = [], BY_ID = new Map();
 function buildAll(){
-  ALL.length=0;
+  ALL.length=0; BY_ID.clear();
   DATA.forEach((rows,ci)=>{
     rows.forEach((r,i)=>ALL.push({id:(ci+1)+"-"+(i+1),ch:ci+1,n:i+1,q:r[0],a:r[1]}));
     custom.filter(c=>c.ch===ci+1).forEach((c,i)=>ALL.push({id:c.id,ch:c.ch,n:rows.length+i+1,q:c.q,a:c.a,added:true}));
   });
+  ALL.forEach(c=>{ c.fq=fold(c.q); c.fa=fold(c.a.join("\n")); BY_ID.set(c.id,c); });
 }
+
+// Search folds width (NFKC), case and katakana→hiragana, so "sio2" finds SiO₂ and "じおいど" finds ジオイド.
+// `map` points each folded character back to its index in the original text, for highlighting.
+function foldMap(s){
+  let out="", map=[];
+  for(let i=0;i<s.length;){
+    const w=s.codePointAt(i)>0xffff?2:1;
+    const f=[...s.slice(i,i+w).normalize("NFKC").toLowerCase()].map(k=>{const c=k.charCodeAt(0); return c>=0x30a1&&c<=0x30f6?String.fromCharCode(c-0x60):k;}).join("");
+    for(let j=0;j<f.length;j++) map.push(i);
+    out+=f; i+=w;
+  }
+  return {out,map};
+}
+function fold(s){ return foldMap(s).out; }
+
 buildAll();
 let known = new Set(store.get("known",[]));
-let st = Object.assign({ch:0,filter:"",shuffle:false,reverse:false,view:"card"}, store.get("prefs",{}));
+let st = Object.assign({ch:0,filter:"",shuffle:false,reverse:false,view:"card",hideAns:false}, store.get("prefs",{}));
 if(st.unknown){ st.filter="new"; delete st.unknown; }  // prefs saved before the review filter existed
 if(st.filter==="unknown") st.filter="new";               // "未習得のみ" before 未判定 was split out
+if(!["","new","missed","due"].includes(st.filter)) st.filter="";
+if(!["card","list","add"].includes(st.view)) st.view="card";
+if(!(st.ch>=0&&st.ch<CH.length)) st.ch=0;
 
 /* spaced review: each known card has a stage (lv) and a due day; the interval grows each time it is recalled on time */
 const INTERVALS=[1,3,7,14,30,60,120];
@@ -257,134 +394,302 @@ function forget(id){ known.delete(id); delete srs[id]; missed.add(id); }
 function clear(id){ known.delete(id); delete srs[id]; missed.delete(id); }
 const status=id=>known.has(id)?(isDue(id)?"due":"known"):missed.has(id)?"missed":"new";
 const FILTERS={new:"未判定",missed:"未習得",due:"復習"};
-function dueLabel(id){ const d=srs[id]?srs[id].due-today():0; return d<=0?"今日復習":d===1?"明日復習":`${d}日後に復習`; }
-let deck=[], idx=0, shown=false;
+const LABEL={due:"要復習",known:"覚えた",missed:"未習得",new:"未判定"};
+function daysLeft(id){ return srs[id]?srs[id].due-today():0; }
+function dueLabel(id){ const d=daysLeft(id); return d<=0?"今日復習":d===1?"明日復習":`${d}日後に復習`; }
+
+// deck = the cards being studied, in order; idx = the card shown (idx === deck.length is the end-of-round screen).
+// round remembers what was marked since the deck was built; pos keeps each chapter+filter's place across visits.
+let deck=[], idx=0, shown=false, round=new Map(), undoSnap=null;
+let posMap = store.get("pos",{}); if(!posMap||typeof posMap!=="object") posMap={};
+const peeked = new Set();
+const END="~end";
 
 const $=id=>document.getElementById(id);
-const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-function savePrefs(){store.set("prefs",{ch:st.ch,filter:st.filter,shuffle:st.shuffle,reverse:st.reverse,view:st.view})}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pct=(a,b)=>b?a/b*100:0;
+const touchUI=matchMedia("(hover: none) and (pointer: coarse)").matches;
+const calm=matchMedia("(prefers-reduced-motion: reduce)");
+function savePrefs(){store.set("prefs",{ch:st.ch,filter:st.filter,shuffle:st.shuffle,reverse:st.reverse,view:st.view,hideAns:st.hideAns})}
 function saveKnown(){store.set("known",[...known]); store.set("srs",srs); store.set("missed",[...missed])}
-function pool(){return ALL.filter(c=>!st.ch||c.ch===st.ch)}
+function pool(ch=st.ch){return ALL.filter(c=>!ch||c.ch===ch)}
+function counts(p){ const n={all:p.length,known:0,due:0,missed:0,new:0}; p.forEach(c=>n[status(c.id)]++); n.got=n.known+n.due; return n; }
+function shuffled(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
-function buildDeck(keepId){
-  let d = pool();
-  if(st.filter) d = d.filter(c=>status(c.id)===st.filter);
-  if(st.shuffle){d=d.slice();for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]]}}
-  deck=d; idx=0;
-  if(keepId){const k=deck.findIndex(c=>c.id===keepId); if(k>=0) idx=k;}
-  shown=false;
+function posKey(){return st.ch+"|"+(st.filter||"all")}
+function savePos(){
+  posMap[posKey()]={cur:idx<deck.length?deck[idx].id:END, order:st.shuffle?deck.map(c=>c.id):null};
+  store.set("pos",posMap);
+}
+// mode: "restore" = resume this chapter+filter where it was left, "anchor" = stay on the current card, "fresh" = start over
+function buildDeck(mode){
+  let saved=null;
+  if(mode==="restore") saved=posMap[posKey()]||null;
+  else if(mode==="anchor") saved={cur:idx<deck.length?deck[idx].id:null, order:null};
+  let d=pool(); if(st.filter) d=d.filter(c=>status(c.id)===st.filter);
+  const order=saved&&Array.isArray(saved.order)?saved.order:null;
+  if(st.shuffle){
+    if(order){ const rank=new Map(order.map((id,i)=>[id,i]));
+      d=d.filter(c=>rank.has(c.id)).sort((a,b)=>rank.get(a.id)-rank.get(b.id)).concat(shuffled(d.filter(c=>!rank.has(c.id)))); }
+    else d=shuffled(d);
+  }
+  deck=d; idx=0; shown=false; round=new Map(); undoSnap=null;
+  if(saved&&saved.cur&&saved.cur!==END&&(!st.shuffle||order)) idx=locate(saved.cur, st.shuffle?order:pool().map(c=>c.id));
+  savePos();
+}
+// The card to resume on: the saved one, or the first one after it that is still in the deck.
+function locate(id, order){
+  const at=new Map(deck.map((c,i)=>[c.id,i]));
+  let p=order.indexOf(id); if(p<0) return 0;
+  for(;p<order.length;p++) if(at.has(order[p])) return at.get(order[p]);
+  return 0;
 }
 
 function renderStrata(){
   $("strata").innerHTML = CH.map((c,i)=>{
-    const p = ALL.filter(x=>!i||x.ch===i), k=p.filter(x=>known.has(x.id)).length, dn=p.filter(x=>isDue(x.id)).length;
-    return `<button style="--k:${c.k}" aria-pressed="${st.ch===i}" data-ch="${i}">
-      <span class="t">${c.t}</span><span class="s">${c.s||"すべて"}</span><span class="n">${k}/${p.length}</span>${dn?`<span class="dn" title="今日の復習">${dn}</span>`:""}
-      <span class="bar"><i style="width:${p.length?k/p.length*100:0}%"></i></span></button>`;
+    const n=counts(pool(i));
+    return `<button type="button" style="--k:${c.k}" aria-pressed="${st.ch===i}" data-ch="${i}" aria-label="${c.t}${c.s?"（"+c.s+"）":""} 覚えた ${n.got}／${n.all}問${n.due?`、復習 ${n.due}問`:""}">
+      <span class="t">${c.t}${n.due?`<span class="dn">${n.due}</span>`:""}</span><span class="s">${c.s||"すべて"}</span><span class="n">${n.got}/${n.all}</span>
+      <span class="meter" aria-hidden="true"><i class="mk" style="width:${pct(n.got,n.all)}%"></i><i class="mm" style="width:${pct(n.missed,n.all)}%"></i></span></button>`;
   }).join("");
   document.documentElement.style.setProperty("--accent", st.ch?CH[st.ch].k:"var(--c1)");
-  const dueAll=ALL.filter(c=>isDue(c.id)).length;
-  [["new","oNew"],["missed","oMissed"],["due","oDue"]].forEach(([f,b])=>{
-    const n=pool().filter(c=>status(c.id)===f).length;
-    $(b).textContent=`${FILTERS[f]} ${n}`; $(b).disabled=!n&&st.filter!==f;
-  });
-  const b=$("banner"), show=dueAll>0&&st.filter!=="due"&&st.view!=="add";
-  b.hidden=!show; b.style.display=show?"":"none";
-  if(show){
-    b.innerHTML=`<span>復習の時期が来た問題が <b>${dueAll}</b> 問あります</span><button class="btn" id="goReview">今日の復習を始める</button>`;
-    $("goReview").onclick=()=>{st.ch=0; st.filter="due"; st.view="card"; syncChips(); savePrefs(); buildDeck(); render();};
-  }
+}
+function renderSeg(){
+  const n=counts(pool());
+  $("seg").innerHTML=[["","すべて",n.all],["new","未判定",n.new],["missed","未習得",n.missed],["due","復習",n.due]].map(([f,l,c])=>
+    `<button type="button" data-f="${f}" class="${f==="due"&&c?"hot":""}" aria-pressed="${st.filter===f}" aria-label="${l} ${c}問"${f&&!c&&st.filter!==f?" disabled":""}><span class="l">${l}</span><span class="c">${c}</span></button>`).join("");
+}
+function renderBanner(){
+  const dueAll=ALL.filter(c=>isDue(c.id)).length, b=$("banner");
+  b.hidden=!(dueAll>0&&st.filter!=="due"&&st.view!=="add");
+  if(!b.hidden) b.innerHTML=`<span class="msg">今日の復習 <b>${dueAll}</b> 問</span><button type="button" id="goReview">復習を始める</button>`;
 }
 
-function renderCard(){
-  const p=pool(), k=p.filter(x=>known.has(x.id)).length, m=p.filter(x=>missed.has(x.id)).length;
-  $("score").textContent=`覚えた ${k}・未習得 ${m}・未判定 ${p.length-k-m}`;
-  const host=$("cardHost");
-  if(!deck.length || idx>=deck.length){
-    $("pos").textContent = deck.length?`${deck.length} / ${deck.length}`:"0 / 0";
-    const rev=st.filter==="due", tm=today()+1, next=p.filter(c=>known.has(c.id)&&srs[c.id]&&srs[c.id].due===tm).length;
-    const title=rev?"今日の復習は終わりです":deck.length?"この範囲を一周しました":`${FILTERS[st.filter]}の問題はありません`;
-    host.innerHTML = `<div class="card done" style="cursor:default"><h2>${title}</h2>
-      <div style="color:var(--muted);font-size:.9rem">覚えた ${k} / ${p.length}${rev?`　明日の復習 ${next} 問`:""}</div>
-      <button class="btn good" id="restart">${deck.length&&!rev?"もう一周する":"すべて表示する"}</button></div>`;
-    $("restart").onclick=()=>{ if(!deck.length||rev){st.filter="";syncChips();savePrefs();} buildDeck(); render(); };
-    ["prev","again","good","next"].forEach(b=>$(b).disabled = b==="prev" ? !deck.length : true);
-    return;
-  }
-  const c=deck[idx];
-  $("pos").textContent=`${idx+1} / ${deck.length}`;
+function renderCard(dir){
+  const host=$("cardHost"), ctl=$("controls"), total=deck.length, end=idx>=total;
+  const hadFocus=document.activeElement&&document.activeElement.id==="card";
+  // Filtered decks shrink as cards are learned, so they count what is left rather than a position.
+  const left=deck.filter(c=>!round.has(c.id)).length;
+  $("pos").textContent = !total?"0 問" : st.filter ? `残り ${deck.length} 問` : end?`${total} / ${total}`:`${idx+1} / ${total}`;
+  $("track").style.width = (st.filter ? pct(round.size,round.size+left) : end?100:pct(idx,total))+"%";
+  ctl.classList.toggle("end",end); ctl.classList.toggle("shown",shown&&!end);
+  $("prev").disabled = idx===0; $("next").disabled = end;
+  if(end){ host.innerHTML=doneHTML(); return; }
+  const c=deck[idx], ch=CH[c.ch], s=status(c.id);
   const front = st.reverse ? c.a.map(esc).join("<br>") : esc(c.q);
   const back = st.reverse ? [c.q] : c.a;
-  host.innerHTML = `<div class="card" id="card" tabindex="0" role="button" aria-label="カードをめくる">
-    <div class="q"><div style="display:flex;justify-content:space-between;gap:8px"><span class="tag">${CH[c.ch].t}　No.${c.n}${c.added?'<span class="new">追加</span>':""}</span><span class="known-mark ${status(c.id)}">${{due:"復習",known:"覚えた・"+dueLabel(c.id),missed:"未習得",new:"未判定"}[status(c.id)]}</span></div>
-    <div class="qtext"${st.reverse?' style="font-family:var(--body);font-weight:700;font-size:1.05rem"':""}>${front}</div></div>
-    ${shown?`<div class="a"><ul>${back.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:`<div class="hint">タップして${st.reverse?"問題":"答え"}を表示</div>`}
+  const what = st.reverse ? "問題" : "答え";
+  host.innerHTML = `<div class="card${dir?" in-"+dir:""}" id="card" style="--k:${ch.k}" tabindex="0" role="button" aria-expanded="${shown}">
+    <div class="q"><div class="chead"><span class="tag">${ch.t}　No.${c.n}${c.added?'<span class="added">追加</span>':""}</span><span class="st ${s}">${s==="known"?"覚えた・"+dueLabel(c.id):LABEL[s]}</span></div>
+    <div class="qtext${st.reverse?" rev":""}">${front}</div></div>
+    ${shown?`<div class="a"><ul>${back.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`
+      :`<div class="hint">${touchUI?`タップで${what}を表示 ・ 左右スワイプで移動`:`クリックか Space で${what}を表示`}</div>`}
   </div>`;
-  $("card").onclick=flip;
-  $("prev").disabled = idx===0;
-  $("next").disabled = false;
-  $("again").disabled = $("good").disabled = !shown;
+  if(hadFocus) $("card").focus({preventScroll:true});
+}
+
+function doneHTML(){
+  const n=counts(pool()), f=st.filter, label=st.ch?CH[st.ch].t:"全章";
+  const good=[...round.values()].filter(v=>v==="good").length, again=round.size-good;
+  const tm=today()+1, tomorrow=pool().filter(c=>known.has(c.id)&&srs[c.id]&&srs[c.id].due===tm).length;
+  const title = deck.length ? (f?`${FILTERS[f]}の問題を一周しました`:"一周しました")
+    : f==="due" ? (round.size?"今日の復習は終わりです":"今日の復習はありません")
+    : round.size ? `${FILTERS[f]}の問題はなくなりました` : `${FILTERS[f]}の問題はありません`;
+  const acts=[];
+  if(f&&deck.length) acts.push(["again",`もう一周（${deck.length}問）`]);
+  if(f!=="missed"&&n.missed) acts.push(["missed",`未習得の ${n.missed} 問を復習`]);
+  if(!f&&n.new&&n.new<n.all) acts.push(["new",`未判定の ${n.new} 問へ`]);
+  if(!f) acts.push(["again","もう一周する"]);
+  else acts.push(["all","すべての問題へ"]);
+  return `<div class="card done" style="--k:${st.ch?CH[st.ch].k:"var(--ink)"}">
+    <h2>${title}</h2>
+    ${round.size?`<p>今回　覚えた ${good}・まだ ${again}</p>`:""}
+    <div class="meter" aria-hidden="true"><i class="mk" style="width:${pct(n.got,n.all)}%"></i><i class="mm" style="width:${pct(n.missed,n.all)}%"></i></div>
+    <div class="legend"><span><i style="background:var(--k)"></i>覚えた ${n.got}</span><span><i style="background:color-mix(in srgb,var(--again) 70%,var(--surface))"></i>未習得 ${n.missed}</span><span><i style="background:var(--line)"></i>未判定 ${n.new}</span></div>
+    ${tomorrow?`<p>${label}の明日の復習 ${tomorrow} 問</p>`:""}
+    <div class="acts">${acts.slice(0,3).map(([a,l],i)=>`<button type="button" class="btn${i?"":" good"}" data-act="${a}">${l}</button>`).join("")}</div>
+  </div>`;
+}
+function doneAction(a){
+  if(a==="again"&&st.filter){
+    // go round the same cards again: rebuilding by status would drop the ones just marked まだ
+    deck=st.shuffle?shuffled(deck):deck.slice(); idx=0; shown=false; round=new Map(); undoSnap=null; savePos();
+  } else {
+    if(a!=="again"){ st.filter=a==="all"?"":a; savePrefs(); }
+    buildDeck("fresh");
+  }
+  render("next");
 }
 
 function renderList(){
-  const term=$("q").value.trim().toLowerCase();
+  const words=fold($("q").value).split(/\s+/).filter(Boolean);
   let p=pool(); if(st.filter) p=p.filter(c=>status(c.id)===st.filter);
-  if(term) p=p.filter(c=>(c.q+" "+c.a.join(" ")).toLowerCase().includes(term));
-  $("lcount").textContent=`${p.length} 問`;
-  $("list").innerHTML = p.length ? p.map(c=>`<div class="row"><div class="rq"><span class="tag">${CH[c.ch].t} ${c.n}</span>${c.added?'<span class="new">追加</span>':""}　${esc(c.q)}</div>
-    <button class="rk ${status(c.id)}" data-id="${c.id}" aria-pressed="${known.has(c.id)}" title="${known.has(c.id)?dueLabel(c.id):""}">${{due:"要復習",known:"覚えた",missed:"未習得",new:"未判定"}[status(c.id)]}</button>
-    <div class="ra">${c.a.map(x=>`<div>${esc(x)}</div>`).join("")}</div></div>`).join("")
-    : `<div class="row" style="color:var(--muted)">該当する問題はありません</div>`;
+  if(words.length) p=p.filter(c=>words.every(w=>c.fq.includes(w)||c.fa.includes(w)));
+  $("lcount").textContent = words.length?`${p.length} 件`:`${p.length} 問`;
+  const hide=st.hideAns&&!words.length;
+  $("list").innerHTML = p.length ? p.map(c=>rowHTML(c,words,hide)).join("")
+    : `<div class="empty">${words.length?"見つかりませんでした":"該当する問題はありません"}</div>`;
+}
+function rowHTML(c,words,hide){
+  const s=status(c.id), ch=CH[c.ch];
+  return `<div class="row" style="--k:${ch.k}"><div class="rq"><span class="rtag">${st.ch?"No.":ch.t+" "}${c.n}</span>${c.added?'<span class="added">追加</span>':""}${hl(c.q,words)}</div>
+    <button type="button" class="rk ${s}" data-id="${c.id}" title="${known.has(c.id)?dueLabel(c.id):""}" aria-label="${LABEL[s]}。押すと${known.has(c.id)?"未習得":"覚えた"}にします">${LABEL[s]}</button>
+    ${!hide||peeked.has(c.id)?answerHTML(c,words):`<button type="button" class="peek" data-peek="${c.id}">答えを表示</button>`}</div>`;
+}
+function answerHTML(c,words){ return `<div class="ra">${c.a.map(x=>`<div>${hl(x,words)}</div>`).join("")}</div>`; }
+function hl(text,words){
+  if(!words.length) return esc(text);
+  const {out,map}=foldMap(text), ranges=[];
+  words.forEach(w=>{ for(let i=out.indexOf(w);i!==-1;i=out.indexOf(w,i+w.length)){
+    const last=map[i+w.length-1]; ranges.push([map[i], last+(text.codePointAt(last)>0xffff?2:1)]); } });
+  ranges.sort((a,b)=>a[0]-b[0]);
+  let html="", at=0;
+  ranges.forEach(([s,e])=>{ if(e<=at) return; s=Math.max(s,at); html+=esc(text.slice(at,s))+"<mark>"+esc(text.slice(s,e))+"</mark>"; at=e; });
+  return html+esc(text.slice(at));
 }
 
-function render(){
-  renderStrata();
-  const v=st.view, isCard=v==="card", isAdd=v==="add";
+function render(dir){
+  const v=st.view, isAdd=v==="add";
   [["card","cardView","vCard"],["list","listView","vList"],["add","addView","vAdd"]].forEach(([k,sec,btn])=>{
-    $(sec).hidden=v!==k; $(sec).style.display=v===k?"flex":"none"; $(btn).setAttribute("aria-pressed",v===k);
+    $(sec).hidden=v!==k; $(btn).setAttribute("aria-pressed",v===k);
   });
-  $("strata").style.display=$("resetBox").style.display=isAdd?"none":"";
-  document.querySelector(".opts").style.display=isAdd?"none":"";
-  $("oReverse").style.display=isCard?"":"none"; $("oShuffle").style.display=isCard?"":"none";
-  isCard?renderCard():isAdd?renderAdd():renderList();
+  $("strata").hidden=$("seg").hidden=$("resetBox").hidden=isAdd;
+  if(v!=="card") hideSnack();
+  renderStrata(); renderSeg(); renderBanner(); syncToggles();
+  v==="card"?renderCard(dir):isAdd?renderAdd():renderList();
 }
-function syncChips(){
-  $("oNew").setAttribute("aria-pressed",st.filter==="new");
-  $("oMissed").setAttribute("aria-pressed",st.filter==="missed");
-  $("oDue").setAttribute("aria-pressed",st.filter==="due");
+function syncToggles(){
   $("oShuffle").setAttribute("aria-pressed",st.shuffle);
   $("oReverse").setAttribute("aria-pressed",st.reverse);
+  $("oHide").setAttribute("aria-pressed",st.hideAns);
+  $("reveal").textContent = st.reverse?"問題を見る":"答えを見る";
 }
-function flip(){ if(idx<deck.length){shown=!shown; renderCard();} }
-function go(d){ idx=Math.max(0,Math.min(deck.length,idx+d)); shown=false; renderCard(); }
+function announce(text){ const l=$("live"); l.textContent=""; setTimeout(()=>{l.textContent=text},50); }
+function flip(){
+  if(idx>=deck.length) return;
+  shown=!shown; renderCard();
+  if(shown){ hideSnack(); const c=deck[idx]; announce((st.reverse?"問題：":"答え：")+(st.reverse?c.q:c.a.join("。"))); answerIntoView(); }
+}
+function go(d){
+  const n=Math.max(0,Math.min(deck.length,idx+d));
+  if(n===idx) return;
+  idx=n; shown=false; savePos(); renderCard(d>0?"next":"prev"); cardIntoView();
+}
 function mark(ok){
   if(!shown||idx>=deck.length) return;
-  const c=deck[idx];
-  ok?learn(c.id):forget(c.id); saveKnown();
-  if(!ok && st.filter){ /* keep it in rotation: move to end */ deck.push(deck.splice(idx,1)[0]); shown=false; renderStrata(); renderCard(); return; }
-  if(ok && st.filter){ deck.splice(idx,1); shown=false; renderStrata(); renderCard(); return; }
-  renderStrata(); go(1);
+  const c=deck[idx], was=known.has(c.id);
+  undoSnap={id:c.id, known:was, missed:missed.has(c.id), srs:srs[c.id]&&{...srs[c.id]}, deck:deck.slice(), idx, round:round.get(c.id)};
+  ok?learn(c.id):forget(c.id); saveKnown(); round.set(c.id, ok?"good":"again");
+  if(st.filter){
+    // in a filtered deck: learned cards leave it, まだ sends the card to the back for another go
+    if(ok) deck.splice(idx,1);
+    else { deck.push(deck.splice(idx,1)[0]); if(deck.length>1&&deck[idx]===c) idx=deck.length; }
+  } else idx++;
+  shown=false; savePos(); renderStrata(); renderSeg(); renderBanner(); renderCard("next"); cardIntoView();
+  const d=daysLeft(c.id);
+  snack(ok ? `覚えた・次の復習は${d<=1?"明日":d+"日後"}` : was?"未習得に戻しました":"未習得にしました");
+}
+function undo(){
+  const u=undoSnap; if(!u) return;
+  undoSnap=null; hideSnack();
+  u.known?known.add(u.id):known.delete(u.id);
+  u.missed?missed.add(u.id):missed.delete(u.id);
+  if(u.srs) srs[u.id]=u.srs; else delete srs[u.id];
+  u.round===undefined?round.delete(u.id):round.set(u.id,u.round);
+  saveKnown(); deck=u.deck; idx=u.idx; shown=true; st.view="card"; savePrefs(); savePos();
+  render("prev"); cardIntoView(); announce("取り消しました");
+}
+let snackTimer;
+function snack(text){
+  const s=$("snack");
+  s.innerHTML=`<span>${esc(text)}</span><button type="button" id="undoBtn">取り消す</button>`;
+  s.hidden=false; $("undoBtn").onclick=undo;
+  clearTimeout(snackTimer); snackTimer=setTimeout(hideSnack,5000);
+}
+function hideSnack(){ clearTimeout(snackTimer); $("snack").hidden=true; }
+// Keep the card in sight after moving on from a long answer, and scroll a revealed answer up from behind the pinned controls.
+function cardIntoView(){
+  const r=$("cardHost").getBoundingClientRect();
+  if(r.top<0) window.scrollBy(0,r.top-10);
+}
+function answerIntoView(){
+  const a=document.querySelector("#card .a"); if(!a) return;
+  const ctl=$("controls"), dock=getComputedStyle(ctl).position==="sticky"?ctl.offsetHeight:0;
+  const r=a.getBoundingClientRect(), over=Math.min(r.bottom,r.top+120)-(innerHeight-dock-8);
+  if(over>0) window.scrollBy({top:over,behavior:calm.matches?"auto":"smooth"});
 }
 
-$("strata").onclick=e=>{const b=e.target.closest("button"); if(!b) return; st.ch=+b.dataset.ch; savePrefs(); buildDeck(); render();};
-[["new","oNew"],["missed","oMissed"],["due","oDue"]].forEach(([f,b])=>$(b).onclick=()=>{st.filter=st.filter===f?"":f; syncChips(); savePrefs(); buildDeck(); render();});
-$("oShuffle").onclick=()=>{st.shuffle=!st.shuffle; syncChips(); savePrefs(); buildDeck(); render();};
-$("oReverse").onclick=()=>{st.reverse=!st.reverse; syncChips(); savePrefs(); shown=false; render();};
-$("vCard").onclick=()=>{st.view="card"; savePrefs(); render();};
-$("vList").onclick=()=>{st.view="list"; savePrefs(); render();};
-$("vAdd").onclick=()=>{st.view="add"; savePrefs(); render();};
+/* swipe the card sideways to move between questions */
+(function(){
+  const host=$("cardHost"); let drag=null, swallow=false;
+  host.addEventListener("pointerdown",e=>{
+    swallow=false;
+    if(e.button>0||!e.isPrimary||e.target.closest("button")) return;
+    const card=e.target.closest(".card"); if(!card) return;
+    drag={id:e.pointerId,x:e.clientX,y:e.clientY,t:e.timeStamp,dx:0,on:false,card};
+  });
+  host.addEventListener("pointermove",e=>{
+    if(!drag||e.pointerId!==drag.id) return;
+    const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+    if(!drag.on){
+      if(Math.abs(dx)<8&&Math.abs(dy)<8) return;
+      if(Math.abs(dy)>=Math.abs(dx)){ drag=null; return; }  // vertical: let the page scroll
+      drag.on=true; drag.card.classList.remove("snap","in-next","in-prev");
+      try{ drag.card.setPointerCapture(e.pointerId); }catch(err){}
+    }
+    drag.dx=dx;
+    const stuck=(dx>0&&idx===0)||(dx<0&&idx>=deck.length), x=stuck?dx/4:dx;
+    drag.card.style.transform=`translateX(${x}px) rotate(${x/40}deg)`;
+  });
+  const end=e=>{
+    if(!drag||e.pointerId!==drag.id) return;
+    const {card,dx,t,on}=drag; drag=null;
+    if(!on) return;
+    swallow=true;
+    const dir=dx<0?1:-1, fast=Math.abs(dx)/Math.max(1,e.timeStamp-t)>.45&&Math.abs(dx)>30;
+    const ok=e.type==="pointerup"&&(Math.abs(dx)>Math.min(90,card.offsetWidth*.25)||fast)&&(dir>0?idx<deck.length:idx>0);
+    if(!ok){ card.classList.add("snap"); card.style.transform=""; return; }
+    if(calm.matches) return go(dir);
+    card.classList.add("fly"); card.style.transform=`translateX(${-dir*(card.offsetWidth+40)}px) rotate(${-dir*6}deg)`;
+    setTimeout(()=>go(dir),140);
+  };
+  host.addEventListener("pointerup",end);
+  host.addEventListener("pointercancel",end);
+  host.addEventListener("click",e=>{
+    if(swallow){ swallow=false; return; }
+    const a=e.target.closest("[data-act]"); if(a) return doneAction(a.dataset.act);
+    if(e.target.closest("#card")) flip();
+  });
+})();
+
+$("strata").onclick=e=>{const b=e.target.closest("button[data-ch]"); if(!b||+b.dataset.ch===st.ch) return; st.ch=+b.dataset.ch; savePrefs(); buildDeck("restore"); render();};
+$("seg").onclick=e=>{const b=e.target.closest("button[data-f]"); if(!b||b.disabled||b.dataset.f===st.filter) return; st.filter=b.dataset.f; savePrefs(); buildDeck("restore"); render();};
+$("banner").onclick=e=>{ if(!e.target.closest("#goReview")) return; st.ch=0; st.filter="due"; st.view="card"; savePrefs(); buildDeck("fresh"); render(); };
+$("oShuffle").onclick=()=>{st.shuffle=!st.shuffle; savePrefs(); buildDeck(st.shuffle?"fresh":"anchor"); render();};
+$("oReverse").onclick=()=>{st.reverse=!st.reverse; savePrefs(); shown=false; render();};
+$("oHide").onclick=()=>{st.hideAns=!st.hideAns; peeked.clear(); savePrefs(); render();};
+[["card","vCard"],["list","vList"],["add","vAdd"]].forEach(([v,b])=>$(b).onclick=()=>{ if(st.view===v) return; st.view=v; savePrefs(); render(); window.scrollTo(0,0); });
 $("q").oninput=renderList;
-$("list").onclick=e=>{const b=e.target.closest(".rk"); if(!b) return; const id=b.dataset.id; known.has(id)?forget(id):learn(id); saveKnown(); renderStrata(); renderList();};
+$("list").onclick=e=>{
+  const pk=e.target.closest("[data-peek]");
+  if(pk){ peeked.add(pk.dataset.peek); pk.outerHTML=answerHTML(BY_ID.get(pk.dataset.peek),[]); return; }
+  const b=e.target.closest(".rk"); if(!b) return;
+  const id=b.dataset.id; known.has(id)?forget(id):learn(id); saveKnown(); undoSnap=null;
+  renderStrata(); renderSeg(); renderBanner(); renderList();
+  const again=document.querySelector(`#list .rk[data-id="${id}"]`); if(again) again.focus({preventScroll:true});
+};
+$("reveal").onclick=flip;
 $("prev").onclick=()=>go(-1); $("next").onclick=()=>go(1);
 $("again").onclick=()=>mark(false); $("good").onclick=()=>mark(true);
 
 function resetUI(){
   const box=$("resetBox");
-  box.innerHTML=`<span class="confirm">${st.ch?CH[st.ch].t:"全章"}の記録を消しますか？<button class="link" id="rYes" style="color:var(--again)">消す</button><button class="link" id="rNo">やめる</button></span>`;
-  $("rYes").onclick=()=>{pool().forEach(c=>clear(c.id)); saveKnown(); restore(); buildDeck(); render();};
+  box.innerHTML=`<span class="confirm">${st.ch?CH[st.ch].t:"全章"}の記録を消しますか？<button type="button" class="link" id="rYes" style="color:var(--again)">消す</button><button type="button" class="link" id="rNo">やめる</button></span>`;
+  $("rYes").onclick=()=>{pool().forEach(c=>clear(c.id)); saveKnown(); restore(); buildDeck("fresh"); render();};
   $("rNo").onclick=restore;
+  $("rNo").focus();
 }
-function restore(){ $("resetBox").innerHTML=`<button class="link" id="reset">記録をリセット</button>`; $("reset").onclick=resetUI; }
+function restore(){ $("resetBox").innerHTML=`<button type="button" class="link" id="reset">記録をリセット</button>`; $("reset").onclick=resetUI; }
 $("reset").onclick=resetUI;
 
 /* add: questions written by an external AI chat, pasted back as "| 問題 | 解答 |" rows */
@@ -438,7 +743,7 @@ function renderPreview(){
     msg.className="msg"+(bad.length?" err":"");
   }
   $("pv").hidden=!rows.length;
-  $("pv").innerHTML=rows.map(r=>`<div class="row${r.dup?" dup":""}"><div class="rq"><span class="tag">${CH[r.ch].t}</span>　${esc(r.q)}${r.dup?'<span class="new" style="color:var(--muted)">既存</span>':""}</div>
+  $("pv").innerHTML=rows.map(r=>`<div class="row${r.dup?" dup":""}" style="--k:${CH[r.ch].k}"><div class="rq"><span class="rtag">${CH[r.ch].t}</span>${esc(r.q)}${r.dup?'<span class="added" style="color:var(--muted)">既存</span>':""}</div>
     <div class="ra">${r.a.map(x=>`<div>${esc(x)}</div>`).join("")}</div></div>`).join("");
   $("doAdd").disabled=!parsed.length;
 }
@@ -451,8 +756,8 @@ function renderAdd(){
   const added=ALL.filter(c=>c.added);
   $("customCount").textContent=added.length?`${added.length} 問`:"まだありません";
   $("customList").hidden=!added.length;
-  $("customList").innerHTML=added.map(c=>`<div class="row"><div class="rq"><span class="tag">${CH[c.ch].t} ${c.n}</span>　${esc(c.q)}</div>
-    <button class="rk" data-del="${c.id}">削除</button><div class="ra">${c.a.map(x=>`<div>${esc(x)}</div>`).join("")}</div></div>`).join("");
+  $("customList").innerHTML=added.map(c=>`<div class="row" style="--k:${CH[c.ch].k}"><div class="rq"><span class="rtag">${CH[c.ch].t} ${c.n}</span>${esc(c.q)}</div>
+    <button type="button" class="rk del" data-del="${c.id}" aria-label="「${esc(c.q)}」を削除">削除</button><div class="ra">${c.a.map(x=>`<div>${esc(x)}</div>`).join("")}</div></div>`).join("");
   $("exportCustom").disabled=!added.length;
 }
 
@@ -470,13 +775,13 @@ $("doAdd").onclick=()=>{
   parsed.forEach((r,i)=>custom.push({id:`${r.ch}-u${stamp}${i.toString(36)}`,ch:r.ch,q:r.q,a:r.a}));
   store.set("custom",custom); buildAll();
   const n=parsed.length;
-  $("paste").value=""; buildDeck(); render();
+  $("paste").value=""; buildDeck("anchor"); render();
   $("pvMsg").textContent=`${n} 問を追加しました。カード・一覧に表示されます`; $("pvMsg").className="msg ok";
 };
 $("customList").onclick=e=>{
   const b=e.target.closest("[data-del]"); if(!b) return;
   custom=custom.filter(c=>c.id!==b.dataset.del); clear(b.dataset.del);
-  store.set("custom",custom); saveKnown(); buildAll(); buildDeck(); render();
+  store.set("custom",custom); saveKnown(); buildAll(); buildDeck("anchor"); render();
 };
 $("exportCustom").onclick=()=>{
   const out=[1,2,3].map(ch=>{ const rs=ALL.filter(c=>c.added&&c.ch===ch); return rs.length?CH[ch].t+"\n"+rs.map(c=>`| ${c.q} | ${c.a.join("<br>")} |`).join("\n"):""; }).filter(Boolean).join("\n\n");
@@ -484,13 +789,24 @@ $("exportCustom").onclick=()=>{
 };
 
 document.addEventListener("keydown",e=>{
-  if(st.view!=="card"||e.target.tagName==="INPUT") return;
-  if(e.key===" "||e.key==="Enter"){e.preventDefault(); flip();}
+  const t=e.target instanceof Element?e.target:document.body;
+  if(st.view!=="card"||e.defaultPrevented||t.closest("input,textarea,select")) return;
+  if((e.ctrlKey||e.metaKey)&&!e.altKey&&e.key.toLowerCase()==="z"){ if(undoSnap){ e.preventDefault(); undo(); } return; }
+  if(e.ctrlKey||e.metaKey||e.altKey) return;
+  const onControl=t.closest("button,summary,a");
+  if(e.key===" "||e.key==="Enter"){ if(onControl) return; e.preventDefault(); flip(); }
   else if(e.key==="ArrowRight") go(1);
   else if(e.key==="ArrowLeft") go(-1);
   else if(e.key==="1") mark(false);
   else if(e.key==="2") mark(true);
+  else if(e.key==="z"||e.key==="Z") undo();
 });
+// An installed app can stay open past midnight: refresh what is due when it comes back.
+let shownDay=today();
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&today()!==shownDay){ shownDay=today(); render(); } });
 
-syncChips(); buildDeck(); render();
+buildDeck("restore"); render();
+
+if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))
+  addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script>

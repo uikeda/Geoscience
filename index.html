@@ -2,212 +2,330 @@
 <html lang="ja">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="地学問題集をめくって覚える単語帳。忘却曲線に沿って復習を出します。">
+<meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#eef0ec" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#141917" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="地学単語帳">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>地学 単語帳</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Shippori+Mincho+B1:wght@600;800&display=swap">
+<!-- Loaded without blocking the first paint; the system fonts in --display/--body stand in until it arrives (or offline). -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Shippori+Mincho+B1:wght@600;800&display=swap" media="print" onload="this.media='all'">
 <style>
-/* Layout: one centered column — chapter strata tabs, then a single card with its controls beneath */
+/* Layout: one centered column — chapter strata tabs, the question filter, then a single card with its controls beneath.
+   On phones the card controls stick to the bottom edge, within thumb reach. */
 :root{
-  --bg:#eef0ec; --surface:#fbfcfa; --ink:#1d2421; --muted:#5d6a64; --line:#d3d9d4;
-  --c1:#7a4b3a; --c2:#a07a2c; --c3:#2f6a86; --accent:var(--c1);
-  --good:#2f7a4f; --again:#b0473a;
+  --bg:#eef0ec; --surface:#fbfcfa; --sunk:#e8ebe7; --ink:#1d2421; --muted:#5d6a64; --line:#d3d9d4;
+  --c1:#7a4b3a; --c2:#856115; --c3:#2f6a86; --accent:var(--c1);
+  --good:#2b7049; --on-good:#fff; --again:#b0473a;
+  --shadow:0 1px 2px rgb(29 36 33 / .06),0 10px 28px -16px rgb(29 36 33 / .28);
   --display:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
   --body:"BIZ UDPGothic","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#141917; --surface:#1d2421; --ink:#e6ebe7; --muted:#9aa7a0; --line:#323d38;
-  --c1:#d08a70; --c2:#d6b05e; --c3:#6fb1d2; --good:#6cc08c; --again:#e07c6e; color-scheme:dark}}
+  --bg:#141917; --surface:#1d2421; --sunk:#0f1311; --ink:#e6ebe7; --muted:#9aa7a0; --line:#323d38;
+  --c1:#d08a70; --c2:#d6b05e; --c3:#6fb1d2; --good:#6cc08c; --on-good:#10251a; --again:#e07c6e;
+  --shadow:0 1px 2px rgb(0 0 0 / .35),0 12px 30px -16px rgb(0 0 0 / .8); color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#141917; --surface:#1d2421; --ink:#e6ebe7; --muted:#9aa7a0; --line:#323d38;
-  --c1:#d08a70; --c2:#d6b05e; --c3:#6fb1d2; --good:#6cc08c; --again:#e07c6e; color-scheme:dark}
-html,body{height:100%}
+  --bg:#141917; --surface:#1d2421; --sunk:#0f1311; --ink:#e6ebe7; --muted:#9aa7a0; --line:#323d38;
+  --c1:#d08a70; --c2:#d6b05e; --c3:#6fb1d2; --good:#6cc08c; --on-good:#10251a; --again:#e07c6e;
+  --shadow:0 1px 2px rgb(0 0 0 / .35),0 12px 30px -16px rgb(0 0 0 / .8); color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.7;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));
   -webkit-tap-highlight-color:transparent}
-button{touch-action:manipulation}
-.qtext,.a li,.row .rq,.row .ra{overflow-wrap:anywhere;line-break:strict}
-.wrap{max-width:640px;margin:0 auto;padding-block:20px 40px;display:flex;flex-direction:column;gap:16px}
-header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
-h1{font-family:var(--display);font-weight:800;font-size:1.6rem;margin:0;letter-spacing:.04em;text-wrap:balance}
-.views{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
-.views button{border:0;background:none;color:var(--muted);font:inherit;font-size:.85rem;padding:4px 14px;border-radius:999px;cursor:pointer}
-.views button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
-/* strata tabs */
-.strata{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.strata button{font:inherit;border:0;border-right:1px solid var(--line);background:var(--surface);color:var(--ink);
-  padding:8px 6px 6px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:2px;position:relative;min-width:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation}
+button:disabled{cursor:default}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.qtext,.a li,.rq,.ra{overflow-wrap:anywhere;line-break:strict}
+.wrap{max-width:640px;margin:0 auto;padding-top:18px;display:flex;flex-direction:column;gap:14px;min-height:100vh;min-height:100dvh}
+.main{display:flex;flex-direction:column;gap:14px}
+.view{display:flex;flex-direction:column;gap:12px}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+h1{font-family:var(--display);font-weight:800;font-size:1.5rem;margin:0;letter-spacing:.04em;line-height:1.2;white-space:nowrap}
+.views{display:flex;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
+.views button{border:0;background:none;color:var(--muted);font-size:.85rem;padding:6px 15px;border-radius:999px;min-height:36px;white-space:nowrap}
+.views button[aria-pressed="true"]{background:var(--ink);color:var(--bg);font-weight:700}
+
+/* strata tabs: one per chapter, with progress (覚えた / 未習得) */
+.strata{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.strata button{border:0;border-right:1px solid var(--line);background:none;color:var(--ink);padding:8px 8px 7px;text-align:left;
+  display:flex;flex-direction:column;min-width:0}
 .strata button:last-child{border-right:0}
-.strata .t{font-weight:700;font-size:.9rem}
-.strata .s,.strata .n{font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+.strata .t{font-weight:700;font-size:.88rem;line-height:1.5;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.strata .s,.strata .n{font-size:.7rem;color:var(--muted);line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .strata .n{font-variant-numeric:tabular-nums}
-.strata .dn{position:absolute;top:6px;right:6px;font-size:.66rem;font-weight:700;line-height:1;color:var(--surface);background:var(--again);
-  border-radius:999px;padding:3px 6px;font-variant-numeric:tabular-nums}
-.strata .bar{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:4px}
-.strata .bar i{display:block;height:100%;background:var(--k)}
-.strata button[aria-pressed="true"]{box-shadow:inset 0 -3px 0 var(--k);background:color-mix(in srgb,var(--k) 9%,var(--surface))}
-.opts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.chip{font:inherit;font-size:.82rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);
-  padding:4px 12px;border-radius:999px;cursor:pointer}
-.chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);font-weight:700}
-.foot{display:flex;justify-content:flex-end}
-.link{font:inherit;font-size:.8rem;background:none;border:0;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-/* card */
-.meta{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;min-height:300px;
-  display:flex;flex-direction:column;cursor:pointer;user-select:none;overflow:hidden}
-.card .q{padding:28px 22px 22px;flex:1;display:flex;flex-direction:column;gap:10px;justify-content:center}
-.tag{font-size:.72rem;letter-spacing:.12em;color:var(--accent);font-weight:700}
-.qtext{word-break:auto-phrase;font-family:var(--display);font-weight:800;font-size:1.35rem;line-height:1.55;text-wrap:balance}
-.card .a{border-top:1px dashed var(--line);padding:18px 22px 22px;background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
-.a ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
-.a li{font-size:1rem}
-.hint{padding:14px 22px;border-top:1px dashed var(--line);color:var(--muted);font-size:.85rem;text-align:center}
-.known-mark{font-size:.72rem;color:var(--good);font-weight:700;white-space:nowrap}
-.known-mark.due,.known-mark.missed{color:var(--again)}
-.known-mark.new{color:var(--muted);font-weight:400}
-.banner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
-  background:color-mix(in srgb,var(--again) 8%,var(--surface));border:1px solid color-mix(in srgb,var(--again) 35%,var(--line));
-  border-radius:12px;padding:10px 14px;font-size:.9rem}
-.banner b{font-variant-numeric:tabular-nums}
-.banner .btn{padding:6px 14px;font-size:.85rem;border-color:var(--again);color:var(--again)}
-.chip.rev[aria-pressed="true"]{border-color:var(--again);color:var(--again)}
-.chip:disabled{opacity:.4;cursor:default}
-.row .rk.due,.row .rk.missed{color:var(--again);border-color:var(--again)}
-.controls{display:grid;grid-template-columns:auto 1fr 1fr auto;gap:8px}
-.btn{font:inherit;font-weight:700;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:12px;cursor:pointer}
-.btn.again{color:var(--again);border-color:color-mix(in srgb,var(--again) 45%,var(--line))}
-.btn.good{background:var(--good);border-color:var(--good);color:var(--surface)}
-.btn:disabled{opacity:.35;cursor:default}
-.keys{font-size:.75rem;color:var(--muted);text-align:center}
-.done{text-align:center;padding:40px 20px;display:flex;flex-direction:column;gap:12px;align-items:center}
-.done h2{font-family:var(--display);margin:0}
-/* list */
-.search{font:inherit;font-size:16px;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);box-sizing:border-box}
-.list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
-.row{padding:12px 16px;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr auto;gap:4px 10px}
+.strata .dn{margin-left:auto;font-size:.64rem;line-height:1;color:var(--surface);background:var(--again);border-radius:999px;padding:3px 6px;font-variant-numeric:tabular-nums}
+.strata button[aria-pressed="true"]{background:color-mix(in srgb,var(--k) 10%,var(--surface));box-shadow:inset 0 -3px 0 var(--k)}
+.meter{display:flex;height:4px;border-radius:2px;overflow:hidden;background:var(--line);margin-top:5px}
+.meter i{height:100%}
+.meter .mk{background:var(--k)}
+.meter .mm{background:color-mix(in srgb,var(--again) 70%,var(--surface))}
+
+/* review banner and the question filter */
+.banner{display:flex;align-items:center;gap:10px;padding:5px 5px 5px 14px;font-size:.88rem;border-radius:12px;
+  background:color-mix(in srgb,var(--again) 9%,var(--surface));border:1px solid color-mix(in srgb,var(--again) 35%,var(--line))}
+.banner .msg{flex:1;min-width:0}
+.banner b{color:var(--again);font-size:1.08em;font-variant-numeric:tabular-nums}
+.banner button{border:0;background:var(--again);color:var(--surface);font-weight:700;font-size:.85rem;border-radius:9px;padding:7px 14px;min-height:38px;white-space:nowrap}
+.seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;background:var(--sunk);border-radius:12px;padding:3px}
+.seg button{border:0;background:none;border-radius:9px;min-height:46px;padding:4px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  line-height:1.3;color:var(--muted)}
+.seg .l{font-size:.82rem}
+.seg .c{font-size:.72rem;font-variant-numeric:tabular-nums}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgb(0 0 0 / .08),0 0 0 1px var(--line)}
+.seg button[aria-pressed="true"] .l{font-weight:700}
+.seg button.hot .c{color:var(--again);font-weight:700}
+.seg button:disabled{opacity:.45}
+
+/* card view */
+.meta{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px}
+.pos{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.toggles{display:flex;gap:6px}
+.tog{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--surface);color:var(--muted);
+  border-radius:999px;padding:3px 11px;font-size:.76rem;min-height:32px;white-space:nowrap}
+.tog svg{width:14px;height:14px;flex:none}
+.tog[aria-pressed="true"]{color:var(--accent);font-weight:700;border-color:color-mix(in srgb,var(--accent) 55%,var(--line));
+  background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
+.track{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:-8px}
+.track i{display:block;height:100%;width:0;background:var(--accent)}
+.card{display:flex;flex-direction:column;min-height:300px;min-height:clamp(240px,44svh,380px);background:var(--surface);
+  border:1px solid var(--line);border-radius:16px;box-shadow:inset 0 4px 0 var(--k),var(--shadow);
+  cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:pan-y;overflow:hidden}
+.card .q{flex:1;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:25px 22px 24px}
+.chead{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:24px}
+.tag{font-size:.72rem;letter-spacing:.12em;color:var(--k);font-weight:700;white-space:nowrap}
+.added{font-size:.66rem;letter-spacing:0;color:var(--k);border:1px solid currentColor;border-radius:4px;padding:0 4px;margin-left:6px;font-weight:700}
+.st{font-size:.7rem;font-weight:700;line-height:1.5;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.st.known{color:var(--good);background:color-mix(in srgb,var(--good) 10%,transparent)}
+.st.due,.st.missed{color:var(--again);background:color-mix(in srgb,var(--again) 10%,transparent)}
+.st.new{color:var(--muted);background:color-mix(in srgb,var(--muted) 10%,transparent);font-weight:400}
+.qtext{font-family:var(--display);font-weight:800;font-size:1.4rem;line-height:1.6;word-break:auto-phrase;text-wrap:balance}
+.qtext.rev{font-family:var(--body);font-weight:700;font-size:1.08rem;line-height:1.75;text-wrap:pretty}
+.card .a{border-top:1px dashed var(--line);padding:18px 22px 22px;background:color-mix(in srgb,var(--k) 6%,var(--surface))}
+.a ul{margin:0;padding:0;list-style:none}
+.a li{font-size:1.05rem;line-height:1.8}
+.a li+li{margin-top:10px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
+.hint{padding:13px 16px;border-top:1px dashed var(--line);color:var(--muted);font-size:.82rem;text-align:center}
+.card.done{cursor:default;align-items:center;justify-content:center;text-align:center;gap:12px;padding:28px 20px}
+.done h2{font-family:var(--display);font-weight:800;font-size:1.4rem;line-height:1.5;margin:0}
+.done p{margin:0;color:var(--muted);font-size:.88rem}
+.done .meter{width:100%;max-width:300px;height:8px;border-radius:4px;margin:2px 0 0}
+.legend{display:flex;flex-wrap:wrap;justify-content:center;gap:2px 14px;font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
+.acts{display:flex;flex-direction:column;gap:8px;width:100%;max-width:300px;margin-top:6px}
+.controls{position:relative;display:grid;grid-template-columns:56px 1fr 1fr 56px;gap:8px}
+.controls .reveal{grid-column:2/4}
+.controls:not(.shown) .again,.controls:not(.shown) .good,.controls.shown .reveal,
+.controls.end .reveal,.controls.end .again,.controls.end .good{display:none}
+.controls.end #next{visibility:hidden}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:700;border-radius:12px;padding:10px 12px;min-height:50px}
+.btn:disabled{opacity:.35}
+.btn.nav{font-size:1.1rem;padding:0}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.btn.again{color:var(--again);border-color:color-mix(in srgb,var(--again) 50%,var(--line));background:color-mix(in srgb,var(--again) 5%,var(--surface))}
+.btn.good{background:var(--good);border-color:var(--good);color:var(--on-good)}
+.snack{position:absolute;left:50%;bottom:calc(100% + 10px);transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:10px;
+  max-width:calc(100vw - 32px);background:var(--ink);color:var(--bg);border-radius:999px;padding:5px 5px 5px 16px;font-size:.82rem;
+  white-space:nowrap;box-shadow:0 8px 24px -8px rgb(0 0 0 / .45)}
+.snack span{overflow:hidden;text-overflow:ellipsis}
+.snack button{border:0;background:color-mix(in srgb,var(--bg) 20%,transparent);color:var(--bg);font-weight:700;border-radius:999px;padding:5px 12px;min-height:32px;white-space:nowrap}
+.keys{margin:0;font-size:.74rem;color:var(--muted);text-align:center}
+.keys kbd{font-family:inherit;font-size:.95em;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--surface)}
+
+/* list view */
+.searchbar{position:sticky;top:0;z-index:2;background:var(--bg);padding:8px 0;margin:-8px 0}
+.searchbar svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted);pointer-events:none}
+.search{width:100%;font-size:16px;padding:11px 14px 11px 38px;border:1px solid var(--line);border-radius:12px;background:var(--surface);-webkit-appearance:none;appearance:none}
+.list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:13px 16px;border-bottom:1px solid var(--line)}
 .row:last-child{border-bottom:0}
-.row .rq{font-weight:700;min-width:0}
-.row .ra{grid-column:1/-1;color:var(--muted);font-size:.9rem;min-width:0}
-.row .ra div+div{margin-top:2px}
-.row .rk{font-size:.75rem;cursor:pointer;border:1px solid var(--line);background:none;color:var(--muted);border-radius:999px;padding:1px 10px;font:inherit;font-size:.72rem;height:fit-content}
-.row .rk[aria-pressed="true"]{color:var(--good);border-color:var(--good)}
-.confirm{display:flex;gap:8px;align-items:center;font-size:.82rem;flex-wrap:wrap}
-/* add */
-.step{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.rq{font-weight:700;line-height:1.6}
+.rtag{color:var(--k);font-size:.72rem;letter-spacing:.06em;margin-right:8px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ra{grid-column:1/-1;color:var(--muted);font-size:.9rem;line-height:1.75}
+.ra div+div{margin-top:3px}
+.rk{align-self:start;border:1px solid var(--line);background:none;color:var(--muted);border-radius:999px;padding:3px 11px;font-size:.72rem;min-height:30px;white-space:nowrap}
+.rk.known{color:var(--good);border-color:color-mix(in srgb,var(--good) 55%,var(--line))}
+.rk.due,.rk.missed,.rk.del{color:var(--again);border-color:color-mix(in srgb,var(--again) 55%,var(--line))}
+.peek{grid-column:1/-1;justify-self:start;border:1px dashed var(--line);background:none;color:var(--muted);border-radius:8px;padding:4px 12px;font-size:.8rem;min-height:32px}
+mark{background:color-mix(in srgb,var(--c2) 30%,transparent);color:var(--ink);border-radius:3px;padding:0 1px}
+.empty{padding:28px 16px;text-align:center;color:var(--muted)}
+
+/* add view */
+.step{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
 .step h2{font-size:.95rem;margin:0;display:flex;gap:8px;align-items:baseline}
 .step h2 b{font-family:var(--display);color:var(--accent)}
 .step p{margin:0;font-size:.85rem;color:var(--muted)}
-.box{font:inherit;font-size:16px;width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
-  background:var(--bg);color:var(--ink);resize:vertical;line-height:1.6}
+.step code{font-size:.85em;background:var(--sunk);border-radius:4px;padding:1px 5px}
+.box{font-size:16px;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);resize:vertical;line-height:1.6}
 .box[readonly]{font-size:.8rem;color:var(--muted)}
-.bar2{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.bar2 .btn{padding:8px 14px;font-size:.88rem}
 select.box{width:auto;padding:8px 10px}
+.bar2{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bar2 .btn{min-height:44px;padding:8px 16px;font-size:.88rem}
 .msg{font-size:.82rem}
 .msg.err{color:var(--again)}.msg.ok{color:var(--good)}
 .pv{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden;max-height:320px;overflow-y:auto}
 .pv .row{grid-template-columns:1fr}
 .pv .row.dup{opacity:.5}
-.list[hidden],.pv[hidden]{display:none}
-.new{font-size:.68rem;color:var(--accent);border:1px solid currentColor;border-radius:4px;padding:0 4px;margin-left:6px;font-weight:700;vertical-align:1px}
-/* phone: larger tap targets, controls pinned within thumb reach */
+
+/* footer: help and reset */
+.foot{margin-top:auto;padding:12px 0 calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;font-size:.8rem;color:var(--muted)}
+.help{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.help summary{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;cursor:pointer;color:var(--ink);font-weight:700;font-size:.85rem;list-style:none}
+.help summary::-webkit-details-marker{display:none}
+.help summary::after{content:"＋";color:var(--muted);font-weight:400}
+.help[open] summary::after{content:"−"}
+.help .body{padding:0 16px 14px;display:flex;flex-direction:column;gap:10px;font-size:.82rem;line-height:1.75}
+.help h3{margin:0;font-size:.82rem;color:var(--ink)}
+.help p{margin:2px 0 0}
+.footrow{display:flex;justify-content:space-between;align-items:center;gap:4px 12px;flex-wrap:wrap}
+.link{background:none;border:0;color:var(--muted);font-size:.8rem;text-decoration:underline;text-underline-offset:3px;padding:8px 0}
+.confirm{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
 @media (max-width:560px){
-  .wrap{padding-block:14px 0;gap:12px}
-  h1{font-size:1.35rem}
-  .views button{padding:7px 16px}
-  .strata button{padding:8px 7px 6px}
-  .chip{padding:7px 14px;font-size:.85rem}
-  .link{padding:8px 0}
-  .card{min-height:240px}
-  .card .q{padding:22px 18px 18px}
-  .qtext{font-size:1.2rem}
-  .card .a{padding:16px 18px 18px}
-  .hint{padding:16px 18px}
-  .controls{position:sticky;bottom:0;z-index:1;margin-inline:-16px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));
-    background:linear-gradient(to bottom,transparent,var(--bg) 10px)}
-  .btn{padding:14px 10px;min-height:50px}
-  .controls .btn:first-child,.controls .btn:last-child{min-width:52px}
-  .foot{padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
-  .row{padding:14px 14px}
-  .row .rk{padding:5px 12px;font-size:.75rem}
+  .wrap,.main{gap:10px}
+  .wrap{padding-top:10px}
+  h1{font-size:1.2rem}
+  .views button{padding:5px 12px;font-size:.8rem;min-height:34px}
+  .strata button{padding:7px 7px 6px}
+  .card .q{padding:21px 18px 20px}
+  .qtext{font-size:1.24rem}
+  .qtext.rev{font-size:1.02rem}
+  .card .a{padding:16px 18px 20px}
+  .a li{font-size:1rem}
+  .row{padding:13px 14px}
+}
+@media (max-width:350px){
+  h1{font-size:1.05rem;letter-spacing:.02em}
+  .views button{padding:5px 9px}
+  .seg .l{font-size:.76rem}
+  .tog{padding:3px 8px}
+}
+/* phones and tablets: card controls pinned to the bottom edge */
+@media (max-width:560px),(hover:none) and (pointer:coarse){
+  .controls{position:sticky;bottom:0;z-index:2;margin-inline:-16px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));
+    background:linear-gradient(to bottom,transparent,var(--bg) 12px)}
 }
 @media (hover:none) and (pointer:coarse){.keys{display:none}}
-@media (hover:hover) and (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.card:hover{border-color:var(--accent)}}
+@media (hover:hover){.card:not(.done):hover{border-color:color-mix(in srgb,var(--k) 45%,var(--line))}}
+@media (prefers-reduced-motion:no-preference){
+  .card.in-next{animation:in-next .24s cubic-bezier(.2,.8,.2,1)}
+  .card.in-prev{animation:in-prev .24s cubic-bezier(.2,.8,.2,1)}
+  .card .a{animation:fade-in .2s ease-out}
+  .card.snap{transition:transform .2s cubic-bezier(.2,.8,.2,1)}
+  .card.fly{transition:transform .15s ease-in,opacity .15s ease-in;opacity:0}
+  .snack{animation:snack-in .2s ease-out}
+  .track i{transition:width .25s}
+  @keyframes in-next{from{opacity:0;transform:translateX(32px)}}
+  @keyframes in-prev{from{opacity:0;transform:translateX(-32px)}}
+  @keyframes fade-in{from{opacity:0;transform:translateY(-4px)}}
+  @keyframes snack-in{from{opacity:0;transform:translate(-50%,6px)}}
+}
 </style>
 
 <div class="wrap">
-  <header>
+  <header class="top">
     <h1>地学 単語帳</h1>
-    <div class="views" role="group" aria-label="表示">
-      <button id="vCard" aria-pressed="true">カード</button>
-      <button id="vList" aria-pressed="false">一覧</button>
-      <button id="vAdd" aria-pressed="false">追加</button>
+    <div class="views" role="group" aria-label="画面">
+      <button type="button" id="vCard" aria-pressed="true">カード</button>
+      <button type="button" id="vList" aria-pressed="false">一覧</button>
+      <button type="button" id="vAdd" aria-pressed="false">追加</button>
     </div>
   </header>
 
+  <main class="main">
   <nav class="strata" id="strata" aria-label="章"></nav>
-
   <div class="banner" id="banner" hidden></div>
+  <div class="seg" id="seg" role="group" aria-label="出題する問題"></div>
 
-  <div class="opts">
-    <button class="chip" id="oNew" aria-pressed="false">未判定</button>
-    <button class="chip" id="oMissed" aria-pressed="false">未習得</button>
-    <button class="chip rev" id="oDue" aria-pressed="false">復習</button>
-    <button class="chip" id="oShuffle" aria-pressed="false">シャッフル</button>
-    <button class="chip" id="oReverse" aria-pressed="false">答え→問題</button>
-  </div>
-
-  <section id="cardView" style="display:flex;flex-direction:column;gap:12px">
-    <div class="meta"><span id="pos"></span><span id="score"></span></div>
+  <section class="view" id="cardView">
+    <div class="meta">
+      <span class="pos" id="pos" aria-live="polite"></span>
+      <div class="toggles">
+        <button type="button" class="tog" id="oShuffle" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>シャッフル</button>
+        <button type="button" class="tog" id="oReverse" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg>答え→問題</button>
+      </div>
+    </div>
+    <div class="track" aria-hidden="true"><i id="track"></i></div>
     <div id="cardHost"></div>
     <div class="controls" id="controls">
-      <button class="btn" id="prev" aria-label="前へ">←</button>
-      <button class="btn again" id="again">まだ</button>
-      <button class="btn good" id="good">覚えた</button>
-      <button class="btn" id="next" aria-label="次へ">→</button>
+      <button type="button" class="btn nav" id="prev" aria-label="前の問題">←</button>
+      <button type="button" class="btn primary reveal" id="reveal">答えを見る</button>
+      <button type="button" class="btn again" id="again">まだ</button>
+      <button type="button" class="btn good" id="good">覚えた</button>
+      <button type="button" class="btn nav" id="next" aria-label="次の問題">→</button>
+      <div class="snack" id="snack" role="status" hidden></div>
     </div>
-    <div id="srsNote" style="margin-top:-4px;font-size:.75rem;color:var(--muted);text-align:center">「覚えた」問題は 1→3→7→14→30→60→120日後 に復習を出します。復習で「まだ」を押すと最初からやり直し</div>
-    <div class="keys">Space：答えを表示　1：まだ　2：覚えた　←→：移動</div>
+    <p class="keys"><kbd>Space</kbd> 答え　<kbd>1</kbd> まだ　<kbd>2</kbd> 覚えた　<kbd>←</kbd><kbd>→</kbd> 移動　<kbd>Z</kbd> 取り消し</p>
   </section>
 
-  <section id="listView" hidden style="flex-direction:column;gap:12px">
-    <input class="search" id="q" type="search" placeholder="問題・解答を検索">
-    <div class="meta"><span id="lcount"></span></div>
+  <section class="view" id="listView" hidden>
+    <div class="searchbar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input class="search" id="q" type="search" placeholder="問題・解答を検索" aria-label="問題・解答を検索" enterkeyhint="search" autocomplete="off">
+    </div>
+    <div class="meta"><span class="pos" id="lcount" aria-live="polite"></span>
+      <button type="button" class="tog" id="oHide" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.1A9.8 9.8 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-3.2 4.1M6.3 6.3C3.9 8 2.5 12 2.5 12s3.5 7 9.5 7a9.6 9.6 0 0 0 5.7-1.8"/></svg>答えを隠す</button>
+    </div>
     <div class="list" id="list"></div>
   </section>
 
-  <section id="addView" hidden style="flex-direction:column;gap:12px">
+  <section class="view" id="addView" hidden>
     <div class="step">
       <h2><b>1</b>AIに指示文を渡す</h2>
       <p>ChatGPT・Claude・Gemini などのチャットに、この指示文と資料（教科書の文章や写真、メモ）を一緒に送ってください。</p>
-      <textarea class="box" id="prompt" rows="6" readonly></textarea>
-      <div class="bar2"><button class="btn" id="copyPrompt">指示文をコピー</button><span class="msg" id="copyMsg"></span></div>
+      <textarea class="box" id="prompt" rows="5" readonly aria-label="AIに渡す指示文"></textarea>
+      <div class="bar2"><button type="button" class="btn" id="copyPrompt">指示文をコピー</button><span class="msg" id="copyMsg" role="status"></span></div>
     </div>
     <div class="step">
       <h2><b>2</b>AIの返答を貼り付ける</h2>
       <p><code>| 問題 | 解答 |</code> の行を読み取ります。前後の説明文や表の見出しは無視します。</p>
-      <textarea class="box" id="paste" rows="7" placeholder="| ジオイドとは | 平均海水面を陸域にも延長した仮想の面 |"></textarea>
+      <textarea class="box" id="paste" rows="7" placeholder="| ジオイドとは | 平均海水面を陸域にも延長した仮想の面 |" aria-label="AIの返答"></textarea>
       <div class="bar2"><label for="addCh" style="font-size:.85rem">追加先</label><select class="box" id="addCh"></select></div>
-      <div class="msg" id="pvMsg"></div>
+      <div class="msg" id="pvMsg" role="status"></div>
       <div class="pv" id="pv" hidden></div>
-      <div class="bar2"><button class="btn good" id="doAdd" disabled>追加する</button></div>
+      <div class="bar2"><button type="button" class="btn good" id="doAdd" disabled>追加する</button></div>
     </div>
     <div class="step">
       <h2><b>3</b>追加した問題</h2>
       <p>追加した問題は、このブラウザだけに保存されます。別の端末で使うときや、問題集の元データ（<code>src/ch*.md</code>）に入れるときは、書き出したテキストを貼り付けてください。</p>
       <div class="msg" id="customCount"></div>
       <div class="list" id="customList"></div>
-      <div class="bar2"><button class="btn" id="exportCustom">書き出しをコピー</button><span class="msg" id="exportMsg"></span></div>
+      <div class="bar2"><button type="button" class="btn" id="exportCustom">書き出しをコピー</button><span class="msg" id="exportMsg" role="status"></span></div>
     </div>
   </section>
+  </main>
 
-  <footer class="foot"><span id="resetBox"><button class="link" id="reset">記録をリセット</button></span></footer>
+  <footer class="foot">
+    <details class="help">
+      <summary>使い方</summary>
+      <div class="body">
+        <div><h3>カード</h3><p>「答えを見る」かカードをタップして答えを表示し、「覚えた」「まだ」で記録すると次の問題に進みます。カードを左右にスワイプすると、記録せずに前後の問題へ移動します。</p></div>
+        <div><h3>問題の状態</h3><p>未判定＝まだ記録していない、未習得＝最後に「まだ」を押した、覚えた、要復習＝「覚えた」問題のうち復習の時期が来たもの。上の「未判定・未習得・復習」で出す問題を絞り込めます。</p></div>
+        <div><h3>復習の予定</h3><p>「覚えた」問題は 1→3→7→14→30→60→120日後 に復習に出ます。時期が来る前に「覚えた」を押しても予定は変わりません。復習で「まだ」を押すと未習得に戻り、最初からやり直しです。</p></div>
+        <div><h3>押し間違えたとき</h3><p>記録した直後に下に出る「取り消す」で、直前の記録を元に戻せます。</p></div>
+        <div><h3>キーボード</h3><p>Space・Enter：答え　1：まだ　2：覚えた　← →：移動　Z：取り消し</p></div>
+        <div><h3>ホーム画面に追加</h3><p>ブラウザの共有ボタンやメニューから「ホーム画面に追加」すると、アプリのように全画面で使えます。一度開いておけば、電波のない場所でも使えます。</p></div>
+        <div><h3>記録の保存先</h3><p>記録と追加した問題は、このブラウザだけに保存されます。別の端末やブラウザとは共有されず、ブラウザのデータを消すと記録も消えます。</p></div>
+      </div>
+    </details>
+    <div class="footrow"><span>記録はこのブラウザに保存されます</span><span id="resetBox"><button type="button" class="link" id="reset">記録をリセット</button></span></div>
+  </footer>
 </div>
+<div class="sr" id="live" aria-live="polite"></div>
 
 <script>
 const DATA = [[["重力とはなにか",["地球の質量による万有引力と、自転による遠心力の合力"]],["地球が赤道方向に膨らんだ回転楕円体である理由とその証明",["理由：自転による遠心力が赤道で最大になるため（ニュートンが理論的に示した）","証明：1735〜1743年のフランス学士院の測量"]],["平均海水面とは",["海水面の変化を長年にわたって平均した面"]],["ジオイドとは",["平均海水面を陸域にも延長し、地球の全表面を覆った仮想の面。標高の基準"]],["地球楕円体とは",["ジオイドの形に最も近い回転楕円体"]],["ジオイドが最も低いのは？",["インド半島の南（地球楕円体より約100m低い）"]],["ジオイドが最も高いのは？",["ニューギニア（地球楕円体より約70m高い）"]],["大規模なジオイドの凹凸の理由",["マントル内部の大規模な密度の違いと、それによるマントル内の対流"]],["西太平洋と南米でジオイドが高い理由",["海溝で沈み込んだ冷たく重い海のプレートが、マントル深部に存在するため"]],["太平洋中央部とアフリカ南部のジオイドの高まりの原因",["マントル深部の大規模な上昇流で地表面が押し上げられるため"]],["標準重力とは",["地球を、内部の密度分布が場所によらず均一な回転楕円体と仮定したときの、各緯度の重力の理論値。記号はγ₀"]],["重力異常とは",["実際の重力の測定値と標準重力との差"]],["フリーエア補正とは",["観測点のジオイド面からの高度の影響を取り除く補正。高度が1m高くなると重力加速度は約3×10⁻⁶ m/s²小さくなる"]],["地形補正とは",["地形の凹凸の影響を取り除くため、地形を水平面と仮定し直す補正。観測点より上の部分を削り、くぼんだ部分を埋めたとみなす"]],["ブーゲー補正とは",["観測点とジオイド面の間にある物質による引力の影響を差し引く補正。補正量は高度差1mあたり約1.13×10⁻⁶ m/s²"]],["フリーエア異常とは",["フリーエア補正を行った値g₀と標準重力γ₀の差。Δg₀ = g₀ − γ₀"]],["ブーゲー異常とは",["ブーゲー補正を行った値g₀″と標準重力γ₀の差。Δg₀″ = g₀″ − γ₀。地下に密度の大きい岩石があれば正、密度の小さい岩石があれば負になる"]],["重力探査とは",["重力異常の分布から、地下の密度分布や地質構造、石油などの地下資源の分布を推定すること"]],["褶曲構造の背斜部分のブーゲー異常はどうなるか、またその理由は？",["大きくなる（正）。","理由：地層は一般に下の層ほど古く、上の地層の重みで密度が大きい。背斜部分では、その密度の大きい下の地層が上に凸となって地表に近づくため"]],["P波とS波の固体中の伝わり方の違いと理由",["P波：縦波（振動方向が進行方向と平行で、疎密が伝わる）。固体・液体・気体のすべてを伝わる","S波：横波（進行方向と垂直に振動する）。固体中しか伝わらない","固体中の速さは、P波がS波の約1.7倍"]],["地殻の厚さdを走時曲線の折れ曲がる地点の震央距離lと地殻、マントルにおける地震波速度V₁, V₂で表せ",["d = (l/2)·√{(V₂ − V₁)/(V₂ + V₁)}"]],["大陸地殻と海洋地殻の構成は？",["大陸地殻（厚さ30〜60km）：上部は主に花こう岩、下部は主に斑れい岩","海洋地殻（厚さ5〜10km）：主に玄武岩・斑れい岩"]],["アイソスタシーとは",["マントルより密度の小さい地殻が、マントルに浮かんでいるとみなせる状態。地殻がマントル内に入り込んだところで、地殻が受ける浮力と重力がつり合うこと"]],["スカンジナビア地域で1万年前以降隆起が続いている理由",["氷期には厚い氷がのった状態でアイソスタシーが成り立っていた。その氷が融けて軽くなり、アイソスタシーが成り立たなくなったため、これを回復するように約1万年前から隆起が続いている"]],["アイソスタシー成立時フリーエア異常とブーゲー異常はどうなるか理由とともに答えよ",["フリーエア異常：観測されない。均衡面より上の地殻とマントル物質の質量の総和がどこでも同じなので、上空から見ると直下の質量はどこも同じになり、フリーエア補正後の重力値も一定になるため","ブーゲー異常：大規模な地形の高まりに対応して負になる。高い地形のところでは地殻が厚く、密度の小さい地殻がマントル内の深いところまで入り込んでいるため"]],["シャドーゾーン（P波の影）とは？",["遠地地震で、震央距離103°〜143°の範囲にP波が伝わらない部分"]],["シャドーゾーンの見られる理由",["深さ約2900kmに、S波が伝わらずP波が内側へ屈折する境界があるため。P波は速度の大きい固体（マントル）から速度の小さい液体（外核）へ入射し、内側に屈折する"]],["核とは？",["深さ約2900kmの境界面より深い部分"]],["内核とは？",["深さ約5100kmの境界面より内側の、固体の部分。この境界でP波の速度が速くなることから固体とわかる"]],["外核とは？",["深さ約2900〜5100kmの、液体の部分。深さ約2900kmの境界でS波が伝わらなくなることから液体とわかる"]],["核の主成分",["鉄・ニッケル"]],["内核が固体である理由",["外核と組成は同じだが、外核より高圧なので、高温でも金属が融けないため"]],["地球内部の化学組成を推定する方法を4つ答えよ",["①地震波速度の観測　②岩石の高温・高圧実験　③太陽系の元素存在度　④隕石の研究"]],["隕石の研究に用いられる隕石の名前",["コンドライト。地球の材料となった原始太陽系の物質が、そのまま残ったものと考えられている"]],["地殻を構成する物質の化学組成を多い方から8つ答えよ",["O、Si、Al、Fe、Ca、Mg、Na、K"]],["マントルの化学組成を多い方から3つ答えよ",["O、Si、Mg"]],["地球内部の熱源を2つ答えよ",["①地球誕生時に微惑星の衝突などで発生し、内部に残された熱（高温の核やマントル）","②岩石に含まれる放射性同位体が自然崩壊するときに発生する熱"]],["地殻やマントルに含まれる放射性同位体の元素記号を3つ答えよ",["K、U、Th"]],["地下増温率とは",["深さとともに地温が高くなっていく割合。地下30kmまででは、100mにつき平均2〜3℃程度"]],["地下深部の温度はどのようにして推定されているか",["実験で得られた、超高圧下での物質の融点と圧力の関係などから見積もられている"]],["地殻熱流量とは",["高温の地球内部から、温度の低い地表に向かって移動する熱量。地殻熱流量 = 地下増温率 × 岩石の熱伝導率"]],["地殻熱流量の大きい地域と小さい地域",["大きい地域：新しい造山帯、海嶺などマントル物質が上昇している地域","小さい地域：古い安定地塊、海溝付近（冷たいプレートが沈み込むため、やや小さい）"]],["地球表層での熱の出入りを観測すると何が分かるか",["マントルの対流など、マントルや核といった地球のより深い場所の様子"]],["日本付近での地殻熱流量の大きい地域と小さい地域",["火山前線の大陸側で大きく、海溝側で小さい。東北地方で特に顕著"]],["地磁気とは",["地球の磁気と、それによって生じる磁場（磁界）"]],["地磁気の三要素とは",["全磁力・水平分力・鉛直分力・偏角・伏角の5つの要素のうち、組み合わせによって、ある地点の地磁気の強さと向きを決定できる3つの要素。例：全磁力・偏角・伏角"]],["日本での偏角と伏角のおおよその値",["偏角は約−5°〜−10°（西偏）、伏角は約40°〜60°。柿岡（茨城県）では偏角が約−7.7°、伏角が約50°"]],["ダイナモ理論とは",["地磁気をつくるしくみ。液体の外核で、電気をよく通す溶融した鉄が磁場の中を流動して電流が生じる。その電流がまた磁場をつくり、元の磁場に加算されて次第に大きくなり、やがて一定に保たれる"]],["地磁気の永年変化の原因",["外核にあると考えられている"]],["残留磁気とは",["岩石ができたときの地磁気の状態が記録され、岩石に保持された地磁気"]],["火成岩が残留磁気を獲得する過程",["熱残留磁気：マグマが固結するときに晶出する鉄やチタンの酸化鉱物（磁鉄鉱など）が、冷却するときの地磁気の向きに磁化する"]],["堆積岩が残留磁気を獲得する過程",["堆積残留磁気：磁鉄鉱などの磁性をもった鉱物粒子が水中で堆積するとき、粒子中の磁気が堆積当時の地磁気の向きに並んで堆積する"]],["太陽風とは",["太陽のコロナから放出された、主に陽子と電子からなるプラズマが、300〜800km/sの高速で太陽から流れ出したもの"]],["地球磁気圏とは",["地球の磁場が、太陽風によって閉じ込められている領域"]],["磁気圏境界面とは",["太陽風と地球磁気圏との境界"]],["地磁気の日変化の要因",["地上100km付近にある電離圏の電気抵抗が自転とともに変化し、電離圏を流れる電流が変化するため"]],["海嶺とは",["海底からの高さ約3km、幅約1000kmにも達する海底の大山脈。プレートの拡大する境界にでき、海嶺軸でプレートが形成される"]],["ウェゲナーの大陸移動説主張の根拠を3つ答えよ",["地質構造／氷河の痕跡の分布／陸上生物の化石の分布"]],["陸橋説を否定する根拠",["アイソスタシーの考えから、密度がマントルより小さく浮いている陸地が、大規模に沈んで海洋になることはない"]],["大陸移動説復活の理由",["1950年代後半の古地磁気学の発展による。岩石の残留磁気から求めた地磁気の北極の移動経路が、ヨーロッパと北アメリカで2つに分かれていた。これは、もとは1つであった両大陸がジュラ紀以降に分裂・移動したと考えるとうまく説明できた"]],["プレート運動の測定方法を2つ答えよ",["①VLBI（遠方の天体クェーサーからの電波を受信し、地表の2地点間の距離を精密に求める）","②GPS（GNSS）"]],["最も動きの速いプレートは",["太平洋プレート（日本列島付近で1年あたり最大10cm）"]],["マントルの様子を解析する手法",["地震波トモグラフィー"]],["地震波トモグラフィーの原理",["同じ深さでも、地震波速度が大きいところは岩石がかたい（低温）、小さいところはやわらかい（高温）と考えられる。これを利用し、2つの地点で発生した地震を様々な場所で観測すると、地震波速度の小さい部分の分布がわかる"]],["プルームとは",["マントルの底からの円筒状の上昇流。太平洋とアフリカの下のマントルの底にある大規模な高温（低速度）領域から上昇する"]],["ウィルソンサイクルとは",["超大陸サイクル。超大陸が数億年の時間を経て、分裂と集合をくり返しつくられるプロセス"]],["深発地震面（和達−ベニオフ帯）とは",["海溝から斜めに沈み込む海のプレートに沿って発生する、深さ約700kmまで続く地震の多発帯。和達清夫によってその存在が確かめられた"]],["発震機構とは",["地震波の初動分布や余震分布、地表地震断層の様子などから明らかにされる、震源断層の方向やずれ方"]],["プレート境界地震の発生のメカニズム",["海溝では、海のプレートの沈み込みに伴って陸側のプレートがゆっくりと沈降する。この陸のプレートが急激に隆起する地殻変動が起こると、地震が発生する（逆断層型）"]],["海と陸のプレートの境界面で固着している部分の名前",["アスペリティー"]],["プレート内地震の発生のメカニズム",["弧−海溝系の陸側のプレートは、海のプレートの沈み込む方向に圧縮されている。陸側のプレートのかたさや強度の分布が複雑だと地殻内にはたらく力も複雑になり、多様な断層運動や地震が起こる。地殻の弱い部分（過去に断層運動があった部分）でくり返し起こることが多い"]],["活断層とは",["最近数十万年間にくり返し活動した証拠があり、今後も活動する可能性が高いと考えられる断層"]],["地震の際に段差やずれが地表に現れた断層は？",["地表地震断層"]],["海溝外側の海のプレートで発生する地震の名前とその発生要因",["アウターライズ地震：海のプレートが沈み込むことで生じるたわみによって発生する"]],["地殻変動の測定方法",["1883年に水準測量（上下方向の変動）と三角測量（水平方向の変動）が始まり、異なる時期の測量結果を比べて地殻変動を調べてきた。1993年以降はGNSSを利用した電子基準点が順次整備され、短期間の小さな地殻変動も高い精度で検出できるようになった"]],["長期間にわたって隆起していたり隆起を繰りかえしている土地でみられる地形",["河岸段丘や海岸段丘などの段丘"]],["沈降している地域でみられる地形",["多島海、リアス海岸"]],["海嶺の地下におけるマグマの発生要因",["マントル物質が高温を保ったまま上昇し、圧力が下がることでかんらん岩が融け始める温度に達し、部分溶融して玄武岩質マグマができる"]],["沈み込み帯におけるマグマの発生要因",["海のプレートから楔形マントルに水がもたらされ、かんらん岩が融け始める温度が下がってマグマができやすくなる"]],["部分溶融とは",["マントルの岩石が融けるとき、融けやすい成分が選んで鉱物粒子の間に浸み出すこと。鉱物は種類ごとに融点が違うので、岩石の融け始めから融け終わりまでの温度には幅がある"]],["部分溶融の例を挙げよ",["SiO₂成分に乏しい超苦鉄質のかんらん岩が部分溶融すると、それよりSiO₂成分に富んだ苦鉄質の玄武岩質マグマができる","大陸地殻の下部にある水に富んだ斑れい岩類が、マントルから上がってきた玄武岩質マグマの熱で部分溶融すると、ケイ長質のデイサイト質マグマができる"]],["初生マグマとは",["岩石が融けてできた直後の状態のマグマ"]],["初生マグマの化学組成の違いから何がわかるか",["材料になった岩石の鉱物の種類や化学組成、融ける深さ（圧力）や温度の違いがわかる。特に玄武岩質マグマの化学組成は、マントル上部の岩石の化学組成や地下増温率を推定する手がかりになる"]],["ホットスポットとは",["ハワイ島のように、マントルの深部から高温の物質が上昇してマグマができ、火山活動が起こっている場所。マグマの供給源の位置はほぼ動かない"]],["マグマだまりとは",["周囲の岩石より密度が小さいマグマが浮力で上昇し、周囲と密度がつり合う深さで止まって、一時的に地殻やマントルにたまったもの"]],["火山の噴火様式をSiO₂の割合の低い順に5つ答えよ",["アイスランド式 → ハワイ式 → ストロンボリ式 → ブルカノ式 → プリニー式"]],["マグマが高温な順に5つ答えよ",["アイスランド式 → ハワイ式 → ストロンボリ式 → ブルカノ式 → プリニー式"]],["揮発性成分の割合が高い順に5つ答えよ",["プリニー式 → ブルカノ式 → ストロンボリ式 → ハワイ式 → アイスランド式"]],["アイスランド式の噴火の様子",["長い割れ目から、粘性が低い玄武岩質溶岩があふれ出す。割れ目の長さは数十km以上になることがある"]],["アイスランド式の例",["ラキ、アスケア"]],["ハワイ式の噴火の様子",["粘性が低い玄武岩質溶岩が流れ出す、比較的穏やかな噴火。溶岩噴泉を伴うことがある"]],["ハワイ式の例",["マウナロア、キラウエア"]],["ストロンボリ式の噴火の様子",["粘性が比較的低い玄武岩や、玄武岩に近い安山岩質のマグマ・溶岩片が小規模な爆発で吹き飛ばされる。短い間隔で周期的にくり返される"]],["ストロンボリ式の例",["ストロンボリ島、阿蘇中岳、伊豆大島三原山"]],["ブルカノ式の噴火の様子",["粘性が比較的高い安山岩〜デイサイト質のマグマが火口や火道をふさぎ、圧力が高まって続く時間の短い爆発を起こす。規模や休止期の長さには大きな幅がある。爆発せずに厚い溶岩流や溶岩円頂丘をつくることもある"]],["ブルカノ式の例",["ブルカノ島、桜島、浅間山"]],["プリニー式の噴火の様子",["マグマとガスの霧状の混合物が、火口から高速で噴き出し続ける。噴煙柱をつくり、多量の軽石や火山灰を降らせる。長い休止期に多量のマグマがたまった後に起こる。爆発せずに盛り上がった溶岩円頂丘をつくることもある"]],["プリニー式の例",["ベスビオ、ピナツボ、阿蘇山、有珠山"]],["アイスランド式でできる火山の形は",["溶岩台地、盾状火山"]],["ハワイ式でできる火山の形は？",["盾状火山、カルデラ（キラウエア型）"]],["ストロンボリ式でできる火山の形は？",["火砕丘、成層火山"]],["ブルカノ式でできる火山の形は？",["成層火山、溶岩円頂丘"]],["プリニー式でできる火山の形は？",["成層火山、カルデラ、溶岩円頂丘"]],["火山岩をSiO₂の割合が低い順に答えよ",["玄武岩 → 安山岩 → 流紋岩"]],["深成岩をSiO₂の割合が低い順に答えよ",["かんらん岩 → 斑れい岩 → 閃緑岩 → 花こう岩"]],["玄武岩、斑れい岩に含まれる造岩鉱物",["斜長石（Caに富む）、輝石、かんらん石"]],["安山岩、閃緑岩に含まれる造岩鉱物",["斜長石、角閃石、輝石、黒雲母"]],["流紋岩、花こう岩に含まれる造岩鉱物",["石英、カリ長石、斜長石（Naに富む）、黒雲母"]],["超苦鉄質岩のSiO₂の含有割合",["約45％以下"]],["苦鉄質岩のSiO₂の含有割合",["約45〜52％"]],["中間質岩のSiO₂の含有割合",["約52〜66％"]],["ケイ長質岩のSiO₂の含有割合",["約66％以上"]],["苦鉄質岩の色指数",["約35〜70"]],["中間質岩の色指数",["約10〜35"]],["ケイ長質岩の色指数",["約10以下"]],["SiO₄四面体で構成された鉱物をなんというか",["ケイ酸塩鉱物"]],["劈開とは",["結晶が一定の面に沿って割れる性質"]],["固溶体とは",["結晶構造は同じだが、元素の割合（化学組成）が連続的に変わる鉱物"]],["固溶体となる条件は",["入れかわる金属イオンの電荷が等しく、イオンの大きさが同じくらいであること"]],["結晶分化作用とは",["1つのマグマから、鉱物が結晶化して取り除かれることで、いろいろな化学組成のマグマができる作用"]],["マグマの混染とは",["高温のマグマが上昇する途中で、融点の低い地殻の岩石を溶かし込み（同化作用）、化学組成が変わること"]],["マグマの混合とは",["マグマだまりや火道で、すでにあった別の組成のマグマと混ざり、中間の組成のマグマができること"]],["沈み込み帯の造山帯で安山岩が多量に産出する理由",["マグマの混合によって、中間質の安山岩質マグマができるため。結晶分化作用でできることもある"]],["有色鉱物を4つ答えよ",["かんらん石、輝石、角閃石、黒雲母"]],["独立型なのは何か",["かんらん石"]],["単鎖状なのは何か",["輝石"]],["複鎖状なのは何か",["角閃石"]],["平面網状なのは何か",["黒雲母"]],["かんらん石の化学式は",["(Mg, Fe)₂SiO₄"]],["灰長石の化学式は",["CaAl₂Si₂O₈"]],["曹長石の化学式は",["NaAlSi₃O₈"]],["カリ長石の化学式は",["KAlSi₃O₈"]],["石英の化学式は",["SiO₂"]],["方解石の化学式は",["CaCO₃"]],["劈開の方向が90°なのは",["輝石"]],["劈開の方向が120°なのは",["角閃石"]],["劈開の方向が一方向に完全なのは",["黒雲母"]],["劈開の方向が2方向に完全なのは",["斜長石、カリ長石"]],["劈開しないのは",["石英"]],["火山岩に見られる組織は",["斑状組織。早い段階で晶出した粗粒の自形鉱物からなる斑晶と、地表付近で晶出した微結晶とガラスからなる石基でできている"]],["深成岩に見られる組織は",["等粒状組織。マグマが地下のマグマだまりでゆっくり冷えるため、岩石全体が粗粒の結晶でできている"]],["マグマが地層を切って入り込み、板状に固まった火成岩体は",["岩脈"]],["マグマが地層面と平行に入り込み、板状に広がって固まった火成岩体は",["岩床"]],["地下深くでマグマが大規模に固まってできた深成岩体は",["底盤（バソリス）"]],["マグマが地層中に貫入し、上面が鏡餅状に膨らみ、下は地層面と平行になって固結した岩体をなんというか",["餅盤"]],["楯状地とは",["安定地塊の中でも特に古く、長い間の侵食によって、盾を伏せたような平らな地形になった地域"]],["付加体の形成メカニズムについて説明せよ",["海のプレートの表面には、海嶺でできた玄武岩、チャートなどの遠洋深海の堆積物、海溝に沈み込む直前にたまった陸から来た粗い砕屑物が重なっている（海洋プレート層序）。これらが海溝の地下にできる断層群によって海のプレートから次々にはがされ、陸のプレートの底へ順に押し付けられて付け加わる。そのため付加体では、一連の地層が逆断層でくり返し積み重なり、下ほど新しい関係になる"]],["大陸地殻の生成メカニズムについて説明せよ",["海嶺でできた玄武岩質の岩石は、熱水活動で変質して含水鉱物を多く含むようになる。これが海溝で沈み込むと、地下深くで高い圧力によって分解し、水を放出する。水によってマントルの岩石の融点が下がり、玄武岩質マグマができる。このマグマが上昇し、地下でゆっくり冷えて斑れい岩の下部地殻をつくる。この地殻がさらに部分溶融し、結晶分化作用をくり返すと流紋岩質マグマができ、冷えて固まって大陸地殻の主体である花こう岩になる"]],["変成作用とは何か",["地下の岩石が高い温度や圧力のもとに長く置かれると、鉱物が固体のまま化学組成の一部や結晶構造を変え、別の鉱物に変わって（再結晶）、別の岩石になる作用"]],["広域変成作用とは",["造山帯で地殻に圧縮の力がはたらき、地殻の内部に広い範囲で温度や圧力の分布が周囲と異なる場所ができて起こる変成作用"]],["低温高圧型の広域変成岩は",["片岩"]],["高温低圧型の広域変成岩は",["片麻岩"]],["低温高圧型変成岩の成因は",["冷たい岩石が沈み込み境界の深いところにもち込まれ、周りから温められる前に高い圧力を受けてできる"]],["高温低圧型変成岩の成因は",["より陸側の地下で火成活動が起き、マグマが大量に上昇して周りの温度が高くなることでできる"]],["片岩の特徴は",["比較的小さな板状や柱状の鉱物の結晶が一方向に並び、片理という組織が発達している。そのため多くの平行な面で割れやすい。褶曲した構造がよく見られる"]],["片麻岩の特徴は",["比較的大きな長石や石英などの無色鉱物と、黒雲母などの有色鉱物が一方向に並んで縞模様をつくる。鉱物の組み合わせは花こう岩と同じだが、鉱物が縞状に分布している点が異なる"]],["古い時代の広域変成帯を調べると何が分かるか",["当時その付近にプレートの収束する境界があったこと。弧−海溝系などの地下の様子を推定できる"]],["接触変成作用とは",["高温のマグマが地殻に入り込み、マグマに接した岩石がその熱によって、幅数十〜数百mの範囲で受ける変成作用"]],["砂岩や泥岩が接触変成作用を受けると何になるか",["ホルンフェルス"]],["石灰岩が接触変成作用を受けると何になるか",["結晶質石灰岩（大理石）"]],["ホルンフェルスの特徴",["かたくて緻密。菫青石や紅柱石などの結晶が見られることもある"]],["結晶質石灰岩の特徴",["粗粒の方解石の結晶が集まっている"]],["多形とは何か",["化学組成が同じで、結晶構造が異なる鉱物どうしの関係（同質異像）"]],["多形の例を挙げよ",["らん晶石・珪線石・紅柱石（Al₂SiO₅）","ダイヤモンド・石墨（C）"]],["石英＋ひすい輝石と曹長石はどちらが低温高圧か",["石英＋ひすい輝石"]],["ダイヤモンドと石墨はどちらが低温高圧か",["ダイヤモンド"]]],[["風化とは",["地表に出た岩石や地層が、壊れたり化学的に変化したりすること。細かく砕かれて砕屑物になったり、成分の一部が溶け出したりする"]],["物理的風化とは",["地層や岩盤が物理的な作用で壊れること（機械的風化）。温度変化による鉱物の膨張・収縮、割れ目の水の凍結、塩類の晶出（塩類風化）、植物の根（生物的風化）などで起こる"]],["化学的風化とは",["岩石が雨水や地下水と反応し、鉱物の一部が溶け出したり、別の鉱物に変わったりすること"]],["物理的風化と化学的風化が起きやすい地域をそれぞれ答えよ",["物理的風化：寒暖の差が大きい乾燥地域や寒冷地域","化学的風化：熱帯から亜熱帯の温暖湿潤な地域"]],["カルスト地形の成因",["石灰岩が、二酸化炭素を溶かした酸性の雨水や地下水によって少しずつ化学的風化を受けてできる。地表にはドリーネなどができ、地下には鍾乳洞ができる"]],["下方侵食とは",["川底を削って掘り下げる侵食"]],["側方侵食とは",["川岸を削って川幅を広げる侵食"]],["泥、砂、礫を侵食されやすい順に答えよ",["砂 → 泥 → 礫"]],["泥、砂、礫を堆積しやすい順に答えよ",["礫 → 砂 → 泥"]],["V字谷、谷底平野の成因",["傾斜が急な山地では川の流れが速く、下方侵食と運搬作用が強くはたらいて、谷底が深く削られたV字谷ができる。その谷底が土砂で埋まると谷底平野になる"]],["扇状地の成因",["川が山地から平坦な土地に出ると傾斜が急に小さくなり、流速も急に小さくなる。堆積作用が強くなり、礫や砂などの比較的粗い砕屑物がたまってできる"]],["氾濫原の成因",["洪水のとき、多くの砕屑物を含んだ流水が流路からあふれ出す。あふれた水は急に広がって流速が小さくなり、流路の周りに砂や泥がたまってできる"]],["三角州の成因",["河口で流速が急に小さくなり、陸から運ばれてきた砕屑物の多くがたまってできる"]],["河岸段丘の成因",["寒冷化による海面の低下や、地殻変動による土地の隆起で、海面との標高差が大きくなる。一時的に川の流速が大きくなって下方侵食・運搬作用が活発になり、川底が階段状に削られてできる。古い段丘面ほど高いところにある"]],["海食崖、海食台、海岸段丘の成因",["海食崖：海岸が波に侵食されてできる急な崖","海食台（波食台）：侵食で海食崖が後退してできた、海面付近の平坦な地形","海岸段丘：海面の低下や地盤の隆起で、海食台の平坦面が海面より高くなってできた階段状の地形"]],["大陸棚とは",["海岸から水深200mくらいまでの海域に広がる、傾斜の小さな平坦面。多くは、最終氷期（約1万8000年前）に海岸付近にできた平坦面（海岸平野）が、その後の温暖化による海面上昇で海底になったもの"]],["タービダイトの形成メカニズム",["大陸棚の末端や大陸斜面の上部にたまった不安定な土砂が、地震のゆれなどをきっかけに崩れる。崩れた土砂は水と混ざって混濁流（乱泥流）という密度の大きい流れになり、大陸斜面を一気に流れ下る。混濁流でたまった地層がタービダイトで、級化構造やクロスラミナが発達する"]],["深海底の堆積物はどのようなものか",["陸からの砕屑物はほとんど届かない。主な堆積物は、放散虫などの二酸化ケイ素（SiO₂）の遺骸を主成分とするケイ質軟泥で、固まるとチャートになる。堆積の速さは1000年で数mm以下ととても遅い。ほかに、風で運ばれたごく細かい火山灰や風化生成物もたまる"]],["深海底に炭酸カルシウムが堆積しない理由",["深海では有機物の分解で海水の二酸化炭素濃度が高くなり、水温も低いため、炭酸カルシウムが溶けやすい。そのため炭酸塩補償深度（CCD、日本付近で約4000m）より深いところでは、炭酸カルシウムが溶けてしまう"]],["液状化とは何か",["水分を多く含む軟弱な地盤が、地震のゆれによって液体のようになること"]],["液状化の起きやすい地域",["沖積層や埋め立て地のように、水分を多く含む軟弱な地盤の地域"]],["噴砂とは",["液状化した大量の砂を含む水が、地表の亀裂から噴き出すこと"]],["崖崩れとは",["大量の雨や地震のゆれで地盤が緩み、急に崩れ落ちること。突然起こり土砂も速いので、起きてからでは避難が間に合わない"]],["土石流とは",["崖や谷底にたまった土砂が、長く続く雨や局地的な大雨の水と一体になって、一気に流れ下ること。速く、壊す力も大きいので大きな被害を出す"]],["地すべりとは",["緩やかな斜面の地中に滑りやすい粘土層や帯水層があるとき、その面に沿って土砂が滑り出すこと。動きは遅いこともあるが、広い範囲が一度に動くので被害が大きく、影響が長く続くこともある"]],["地盤沈下とは",["地下水をくみ上げすぎて帯水層の水圧が下がると、隣の粘土層の水が帯水層に絞り出され、粘土層が縮んで地盤が沈むこと"]],["続成作用とは",["固まっていない堆積物が、圧密作用や膠結作用（セメンテーション）によって、かたい堆積岩になる過程"]],["堆積岩の分類を4つ挙げよ",["砕屑岩、火山砕屑岩、生物岩、化学岩"]],["礫の大きさは",["直径2mm以上"]],["砂の大きさは",["直径2〜1/16mm"]],["シルトの大きさは",["直径1/16〜1/256mm"]],["粘土の大きさは",["直径1/256mm未満"]],["砕屑岩とは",["岩石が細かく砕かれた砕屑物からできた岩石。粒の大きさによって礫岩・砂岩・泥岩に分けられる"]],["火山砕屑岩とは",["火山の噴火で出た、マグマがもとになった砕屑物からできた岩石。粒の大きさや割合によって凝灰角礫岩・火山礫凝灰岩・凝灰岩に分けられる"]],["褶曲とは",["比較的長い時間、地層や岩盤に大きな圧縮の力が加わり、地層や岩盤が割れずに少しずつ折れ曲がっていく変形"]],["横臥褶曲とは",["褶曲軸面がほとんど水平になった褶曲"]],["衝上断層とは",["断層面の傾きが緩い逆断層"]],["整合とは",["地層が時間の間隔をあけずに続けて堆積したときの、地層どうしの関係"]],["不整合とは",["地層の堆積が長い間止まったり、侵食で地層の一部が失われたりした後に、その上に新しい地層が堆積してできる、新旧の地層の不連続な関係。その不連続な面を不整合面という"]],["地層の対比とは",["離れた地域の地層を比べて、それらが同じ時代の地層であることを明らかにすること"]],["示準化石とは",["その化石を含む地層が堆積した地質年代を示す化石"]],["示準化石の条件",["種の存在期間が短い（進化の速さが速い）、広い範囲に分布している、見分けやすい"]],["鍵層とは",["地層の対比に役立つ地層"]],["鍵層の例",["火山灰層"]],["古地磁気による地層の対比方法",["地球磁場の向きは、数万〜数十万年の単位で入れかわっている。この反転の歴史をもとに、地球全体を取り巻く同時間面を決められる。地層中に記録された地磁気を測定し、その時間面を比べることで対比する"]],["相対年代とは",["地層や岩石に残された示準化石や古地磁気の記録によって、相対的な新旧関係を明らかにして区分した年代"]],["放射性年代とは",["岩石などの試料に含まれる放射性同位体の壊変を利用して、今から何年前というように数値で表した年代（数値年代）"]],["半減期とは",["放射性同位体の原子数が、元の半分になるのにかかる時間。放射性同位体ごとに一定で、温度や圧力によって変わらない"]],["カリウム-アルゴン法で用いる造岩鉱物",["火成岩中のKに富む造岩鉱物（黒雲母、カリ長石など）。ほかに堆積岩中の火山ガラスや、火成岩全体も用いる"]],["炭素14法の測定に用いるのは",["数万年前までの新しい時代の地層中の木片や貝殻など"]],["半減期を用いた年代測定の方法",["岩石中の放射性同位体は、たえず一定の割合で壊変して安定な同位体に変わっていく。そこで、岩石中に残っている放射性同位体と、それからできた安定な同位体の原子数の比を調べると、岩石ができた年代（放射性年代）がわかる。半減期の長いカリウム40やウラン238は古い地質年代の測定に、半減期の短い炭素14は比較的新しい地質年代（数万年以内）の測定に使われる"]],["先カンブリア時代よりあとの時代を何というか",["顕生代"]],["代を古い方から順に答えよ",["冥王代 → 太古代（始生代）→ 原生代 → 古生代 → 中生代 → 新生代"]],["顕生代の紀を古い方から順に答えよ",["古生代：カンブリア紀 → オルドビス紀 → シルル紀 → デボン紀 → 石炭紀 → ペルム紀","中生代：三畳紀（トリアス紀）→ ジュラ紀 → 白亜紀","新生代：古第三紀 → 新第三紀 → 第四紀"]],["第四紀の世を古い方から順に答えよ",["更新世 → 完新世"]],["冥王代の地球の様子",["岩石という具体的な記録が残っておらず、情報が欠けた時代。誕生直後の地球はマグマオーシャンの状態で、内部では重い金属質の部分と軽い岩石質の部分が分かれた。金属質の部分は中心部に落ち込んで核に、岩石質の部分は核を取り巻く厚いマントルになった。マグマオーシャンの表面が冷えて、薄い原始地殻ができた"]],["マントル対流の下降流はどのように形成されるか",["複数の大陸が衝突してできる超大陸の下では、沈み込んだプレート（スラブ）が上部マントルと下部マントルの境界付近に大量にたまる。スラブは周りのマントルより温度が低くて密度が大きいため、マントル対流の下降部分をつくる"]],["初めに現れた生物はどのようなものだと考えられていて、少なくとも何年前までに出現したか",["酸素が少ない環境で生きる嫌気性の原核生物と考えられている。イスア地域の堆積岩中の炭素質の微粒子から、約38億年前には生命活動が始まっていたと考えられている"]],["光合成が行われ始めたのはいつ頃か",["太古代末の約27億年前ごろ"]],["太古代末に浅い海に出現した原核生物は",["シアノバクテリア（ラン藻類）"]],["ストロマトライトとは",["シアノバクテリアが酸素発生型の光合成をした痕跡で、石灰岩中に見られるドーム状の構造。海中の炭酸カルシウムが層状に積み上がるように成長したもの"]],["縞状鉄鉱層の成因とその主要な堆積年代",["成因：シアノバクテリアの光合成で放出された酸素によって、海水中に溶けていた鉄イオンが酸素と結びつき、大量に海底に堆積してできた","主な堆積年代：約27〜22億年前（太古代末から原生代初期）"]],["全球凍結の証拠",["世界各地の原生代の地層から見つかった氷河堆積物。赤道付近で堆積した地層からも見つかっていて、低緯度地域まで氷河に覆われていたことが確認された"]],["ドロップストーンとは",["全球凍結の終わりに急に氷が融け出し、大陸を削りながら氷山として海に流れ込んだ後、氷山の底から海洋底に落ちた大陸起源の礫"]],["原生代前期に大気中の酸素濃度が上昇した理由",["光合成でできた大量の有機物が堆積岩の中に保存され、海水や大気と触れなくなったため。有機物が酸化分解されないので、光合成でできた酸素が消費されずに残った"]],["最古の真核生物の化石は何年前か",["約21億年前（アフリカ西部ガボンの地層から見つかった）"]],["原生代中期の地層から見つかる様々な海洋プランクトンの化石は何というか",["アクリターク"]],["原生代末期に現れた大型の生物群を何というか",["エディアカラ生物群"]],["エディアカラ生物群の特徴",["約5.8億年前以降に現れた。やわらかい組織をもち、偏平な形をしていた。それ以前の生物よりはるかに大きく、数十cmのものもあった。世界中で栄えたが、原生代の最末期（約5億5000万年前）に絶滅した"]],["生物の陸上進出を可能にした要因",["安定したオゾン層ができ、生物に有害な紫外線を吸収するようになったこと"]],["カンブリア紀初期に出現した生物の特徴",["多様な小型有殻生物が急速に現れた。かたい殻や骨をもち、運動能力が発達した、エディアカラ生物群とは大きく異なる動物が多数現れた（カンブリア紀の爆発的進化）"]],["カンブリア紀初期の動物群を2つ挙げよ",["澄江動物群、バージェス動物群"]],["動物が陸上に進出したのはいつか",["オルドビス紀"]],["植物が陸上に進出したのはいつか",["オルドビス紀"]],["胞子以外の最古の陸上植物化石は何紀の何か",["シルル紀のクックソニア"]],["デボン紀から石炭紀にかけて陸上動物が多様に進化した理由",["巨大な森林が発達して、動物にとって新しい生息域ができたため"]],["三葉虫の繁栄した時期",["古生代"]],["フデイシの繁栄した時期",["オルドビス紀〜シルル紀（古生代前半）"]],["クサリサンゴの繁栄した時期",["シルル紀、デボン紀"]],["ハチノスサンゴの繁栄した時期",["シルル紀、デボン紀"]],["イクチオステガの繁栄した時期",["デボン紀"]],["フズリナの繁栄した時期",["石炭紀、ペルム紀"]],["ロボク、リンボク、フウインボクの繁栄した時期",["石炭紀"]],["裸子植物の出現した時期",["石炭紀末からペルム紀"]],["被子植物の出現した時期",["白亜紀"]],["モノチスの繁栄した時期",["三畳紀"]],["アンモナイトの繁栄した時期",["中生代"]],["恐竜の繁栄した時期",["中生代"]],["トリゴニアの繁栄した時期",["ジュラ紀、白亜紀"]],["イノセラムスの繁栄した時期",["ジュラ紀、白亜紀"]],["貨幣石（ヌンムリテス）の繁栄した時期",["古第三紀"]],["デスモスチルスの繁栄した時期",["新第三紀"]],["ビカリアの繁栄した時期",["新第三紀"]],["マンモスの繁栄した時期",["第四紀"]],["ナウマンゾウの繁栄した時期",["第四紀"]],["中生代末の大量絶滅の原因",["直径約10kmの天体の衝突による環境変化と考えられている。証拠は、世界各地で見つかっているイリジウムが濃集した粘土層"]],["古第三紀の環境",["中生代からの温暖で穏やかな気候が続き、特に約5500万年前には温暖化がきわめて強くなった。この温暖化は、メタンハイドレートが大量に溶け出し、大気中に放出されたメタンガスの強い温室効果によって起こったと考えられている。その後、古第三紀後期（約3500万年前）には気候が寒冷化に転じた"]],["サヘラントロプスの出現は何年前か",["約700万年前（新第三紀後半）"]],["ホモ・ハビリスの出現は何年前か",["約230万年前"]],["南極周極流の発生した時期は",["古第三紀。インドがアジアに衝突したのと同じ時代に、南極がアフリカ・南米・オーストラリアから分離して、南極のまわりを緯度に沿って回る海流ができた。これにより南極は急に寒冷化した"]],["第四紀の気候の特徴",["寒冷な気候で、少なくとも最近の約70万年間は、約10万年の周期でほぼ正確に氷期と間氷期がくり返されてきた。氷期が長く、間氷期は1万年程度。現在は約1万年前から続く間氷期にある"]],["¹⁶Oと¹⁸Oの比率を利用して過去の気候を推定する方法",["蒸発する水は軽い¹⁶Oを多く含む。寒冷期には、¹⁶Oを多く含む水が氷床として陸上にとどまるため、海水中の¹⁸O/¹⁶Oの値が大きくなる。温暖期には、氷床が融けて¹⁶Oを多く含む水が海に戻るため、¹⁸O/¹⁶Oの値が小さくなる。有孔虫の殻は生きていた当時の海水の酸素同位体比をそのまま保存しているので、殻の¹⁸O/¹⁶Oを調べることで、過去の氷床量や気温の変化を推定できる"]],["温暖化と寒冷化の周期を何というか",["ミランコビッチ周期（ミランコビッチサイクル）"]],["ミランコビッチサイクルの3つの要素を答えよ",["①公転軌道の離心率（約10万年周期）","②地軸の傾き（約4万1000年周期）","③歳差運動（約2万6000年周期）"]],["冥王代は何年前から何年前までか",["約46億年前〜約40億年前"]],["太古代は何年前から何年前までか",["約40億年前〜約25億年前"]],["原生代は何年前から何年前までか",["約25億年前〜約5.41億年前"]],["古生代は何年前から何年前までか",["約5.41億年前〜約2.52億年前"]],["中生代は何年前から何年前までか",["約2.52億年前〜約6600万年前"]],["古第三紀は何年前から何年前までか",["約6600万年前〜約2300万年前"]],["新第三紀は何年前から何年前までか",["約2300万年前〜約258万年前"]],["第四紀は何年前からか",["約258万年前から（現在まで）"]],["西南日本の基盤岩のうち付加体であるものを3つ挙げよ",["秋吉帯、美濃・丹波帯（秩父帯）、四万十帯"]],["西南日本の基盤岩のうち低温高圧型変成岩であるものを3つ挙げよ",["蓮華帯、周防帯、三波川帯"]],["西南日本の基盤岩のうち高温低圧型のものを挙げよ",["領家帯"]],["以上7つの基盤岩を大陸側から順に並べよ",["蓮華帯 → 秋吉帯 → 周防帯 → 美濃・丹波帯 → 領家帯 → 三波川帯 → 四万十帯"]],["蓮華帯の形成年代は",["石炭紀"]],["秋吉帯の形成年代は",["ペルム紀"]],["周防帯の形成年代は",["三畳紀"]],["美濃・丹波帯（秩父帯）の形成年代は",["ジュラ紀"]],["三波川帯の形成年代は",["白亜紀"]],["四万十帯の形成年代は",["白亜紀〜新第三紀（北帯が白亜紀、南帯が古第三紀〜新第三紀）"]],["領家帯の形成年代は",["白亜紀"]],["領家帯、三波川帯の境界を何というか",["中央構造線"]],["古い時代の東北日本と西南日本の境界を何というか",["棚倉構造線"]],["フォッサマグナとは何か、簡潔に答えよ",["本州を南北に横断し、東北日本と西南日本の間にできた大規模な陥没帯"]],["日本で見られる石灰岩の起源を簡潔に答えよ",["海のプレート内のホットスポットでできた海山の上に堆積した、サンゴ礁起源の石灰岩。これが海のプレートにのって数千km移動し、海溝で大陸縁に付加された"]],["構造侵食とは何か",["プレートの沈み込みによって、一度できた付加体が底面から削られ、マントルへ運び去られること"]],["日本海の形成はいつ頃起きたか",["新第三紀中ごろの約2000万〜1500万年前"]],["グリーンタフとは何か",["日本海が開き始めたころの浅い海底での激しい火山活動でできた、流紋岩・安山岩質の火山岩類。熱水と反応して変質し、緑色を帯びることが多い"]],["日本海形成時の火山活動に伴い海底でできた鉱床",["黒鉱鉱床"]],["縄文海進とは何か",["後氷期の約7000年前に世界的に温暖になって海水準が最も高くなり、日本列島の海岸付近の平野で内陸まで海が入り込んだこと"]]],[["大気の組成はどれくらいの高度まで変化しないか",["地表から高度約100kmまで"]],["二酸化炭素濃度の1年を通した変化",["夏に低下し、冬に上昇する季節変化が見られる。植物の光合成が夏は活発に、冬は不活発になることに対応している。陸地（植物）の多い北半球では夏に減少し、秋に極小となる"]],["水蒸気が地球のエネルギー収支で果たす役割",["①蒸発するときに蒸発熱を吸収し、雲になる過程で凝結熱を放出する","②雲になって可視光線を反射・散乱する","③赤外線を吸収・放射する"]],["気圧はどのくらいの高度上がると半減するか",["約5.5km上がるごと"]],["大気圏の区分を地表から順に答えよ",["対流圏 → 成層圏 → 中間圏 → 熱圏"]],["対流圏界面の高度は？",["平均約11km（高緯度では約9km、中緯度では約12km、低緯度では約17km）"]],["成層圏界面の高度は？",["約50km"]],["中間圏界面の高度は？",["約80〜90km"]],["地球と他の地球型惑星との気温の高度分布の違い",["地球にはオゾン層があるため、高度50km付近に気温の極大がある。金星や火星にはオゾン層がないため、このような極大は見られない"]],["対流圏の最下層を何というか",["大気境界層"]],["逆転層とは",["上空ほど気温が高くなる層"]],["地表付近での逆転層の発生過程",["よく晴れた風の弱い夜に、放射冷却で地表面の温度が下がり、地表面に接した大気が冷やされてできる（接地逆転）"]],["上空での逆転層の発生過程",["上空に高温な空気があるような前線面によってできる（上空逆転）"]],["対流圏界面付近の気温",["約−55℃"]],["成層圏界面付近の気温",["約0℃"]],["中間圏界面付近の気温",["約−90℃"]],["オゾン層の高度は？",["約15〜30km"]],["成層圏の気温の極大がオゾン層より高い高度で起こる理由",["高度が高いほど吸収する紫外線の量が多いこと、また大気の密度が小さく熱容量が小さいので温まりやすいこと"]],["オゾン濃度が高緯度の方が高い理由",["日射（紫外線）の強い低緯度地域の成層圏でつくられたオゾンが、大気の循環によって高緯度地域に運ばれるため"]],["オゾンホールが維持される理由",["秋〜春に、南極を中心とした時計回りの強い西風（極渦）ができ、中緯度のオゾン濃度の高い空気が入り込むのを妨げるため"]],["成層圏突然昇温とは何か簡潔に説明せよ",["冬季の成層圏で、対流圏で生まれた大規模な大気の波動の影響で極渦が一時的に崩れ、極域の成層圏の気温が急に数十℃も上昇する現象"]],["準二年周期振動とは何か簡潔に説明せよ",["赤道域の成層圏で、約26か月の周期で東風と西風が交互に現れる現象"]],["熱圏が高温である理由",["酸素や窒素が太陽からの紫外線やX線を吸収するため"]],["電離圏とは何か",["高度約80〜500kmで、太陽からのX線や紫外線によって大気中の原子や分子が電離し、イオンと電子になっている部分"]],["極成層圏雲とは何か",["冬季の南極や北極の成層圏下部（高度10〜25km）に現れる雲。低温になった成層圏下層で、わずかな水蒸気や硝酸が凝結してできる。オゾン層の破壊を速めるはたらきがあり、オゾンホールが現れる原因の1つになっている"]],["極中間圏雲とは何か",["夏季の南極や北極の中間圏上部（高度約85km）に現れる雲。気温が約−140℃まで下がり、わずかな水蒸気が凝結して氷の雲になる。日の出前や日没後に青白く輝いて見えるため、夜光雲ともよばれる"]],["気象レーダーの観測方法",["雨粒に当たって散乱した電波（レーダーエコー）を受信して、雨の強さや風を調べる。雨粒が風に流されることを利用し、散乱した電波の周波数のドップラー効果から風速も推定する"]],["高度30kmまでの気象観測に用いる装置",["ラジオゾンデ"]],["電波を用いて高度12kmまでの気象観測を行うシステム",["ウィンドプロファイラ"]],["気象衛星による観測の利点",["地上で観測しにくい海域の気象状況を観測できる。また、地球全域にわたって、時間的にも空間的にも連続した観測データが得られる"]],["気象衛星の2種類を答えよ",["静止気象衛星、極軌道気象衛星"]],["静止気象衛星の利点",["赤道上空約3万5800kmの円軌道を地球の自転と同じ周期で回るため、常に同じ経度帯を観測できる"]],["極軌道気象衛星の利点",["静止気象衛星では観測できない極域を観測できる。地球が自転しているため、1つの衛星で地球全体を観測できる"]],["GPS衛星を用いた気象観測の方法",["電波が大気を通るとき、気温の構造や水蒸気の影響で真空中より遅れて伝わる性質を利用して、各地点の気温や水蒸気量を推定する"]],["300hPa天気図から何が分かるか",["高度約9000m付近の、対流圏上層の大気の状態。主にジェット気流の位置や強さをつかむのに使われる"]],["500hPa天気図から何が分かるか",["高度約5500m付近の、対流圏中層の大気の状態。主に気圧の谷・気圧の尾根の位置や、上空の寒気の位置をつかむのに使われる"]],["700hPa天気図から何が分かるか",["高度約3000m付近の、対流圏下層の大気の状態。主に高湿度の領域に対応する雲の位置や、低気圧に伴う上昇流をつかむのに使われる"]],["850hPa天気図から何が分かるか",["高度約1500m付近の、対流圏下層の大気の状態。主に前線の位置や下層の風の流れをつかむのに使われる"]],["絶対不安定、条件付き不安定、絶対安定とは何か、気温減率に基づいて簡潔に答えよ",["絶対不安定：周囲の大気の気温減率が乾燥断熱減率（約1.0℃/100m）より大きい状態","条件付き不安定：周囲の大気の気温減率が、乾燥断熱減率と湿潤断熱減率（約0.5℃/100m）の間にある状態","絶対安定：周囲の大気の気温減率が湿潤断熱減率より小さい状態"]],["水蒸気が凝結し始める高度を何というか",["凝結高度"]],["水滴の核となるものを何というか",["凝結核"]],["氷晶の核となるものを何というか",["氷晶核"]],["凝結核、氷晶核の例を挙げよ",["大気中に浮かんでいる微粒子（エーロゾル）。海塩粒子、土壌粒子、火山灰、煙、排出ガスがもとになって空気中でできるものなど"]],["雲が浮いているように見えるのはなぜか",["1つ1つの雲粒は小さくて軽いのでゆっくり落ち、途中で飽和していない大気に入って蒸発して消えていく。しかし上昇気流があるため、新しくできる雲粒の数が消える数を上回り、雲が浮いているように見える"]],["冷たい雨の発生過程を説明せよ",["約−10℃以下の低温の雲の中で、氷晶と過冷却の水滴が共存すると、水のまわりの飽和水蒸気圧が氷のまわりより高いため、水滴は蒸発し、その水蒸気が凝華して氷晶のまわりに付く。氷の粒が成長して重くなると、上昇気流で支えきれずに落下し、暖かい下層で融けて雨になる（融けずに地表に届いたものが雪）"]],["暖かい雨の発生過程を説明せよ",["気温が0℃以上の暖かい大気中で、氷晶を含まない雲の大小の雲粒が、気流の乱れの中で上昇や下降をくり返すうちに衝突する。落下速度の速い大きな雲粒が小さな雲粒を次々にとらえて、雨粒に成長する"]],["雷の発生過程を説明せよ",["積乱雲が発達して激しい雷雨を伴うとき、上昇気流の中で氷晶や雪の結晶がこすれ合う。小さな氷晶や雪の結晶は正に帯電して雲の上部に、あられのような大きな氷晶は負に帯電して雲の下部に集まる。このとき雲の内部や雲と地面の間で起こる放電が雷である"]],["入射量に対する反射量の比を何というか",["アルベド（反射率）"]],["地球のアルベドは？",["0.30（地球全体の平均）"]],["潜熱とは何か",["水の状態変化に伴い出入りする熱"]],["温室効果とは何か",["大気は可視光線を主とする波長の短い太陽放射はよく通すが、赤外線を主とする波長の長い地球放射はよく吸収する。そのため地表から大気圏外へ出ていくエネルギーが抑えられ、対流圏下層の気温が高く保たれるはたらき"]],["8〜13μmの波長帯は何と呼ばれるか",["大気の窓"]],["放射平衡温度とは何か",["地球が受け取る太陽放射と、大気圏の上端から出ていく赤外放射のエネルギー収支がつり合って、一定に保たれる温度。地球に大気がない場合の地表面の温度にあたり、約255K（約−18℃）"]],["顕熱とは何か",["熱の伝導によって、地表から大気へ移動する熱エネルギー"]],["地球全体での熱輸送量が最大となる緯度は？",["緯度35°〜45°付近"]],["それはどのような場所か？",["太陽放射の吸収量と、地球放射の放出量が一致する場所"]],["摩擦力が大きくなると、等圧線と風のなす角はどうなるか",["大きくなる。摩擦力が大きいほど風速が小さくなり、転向力が小さくなるため"]],["数km〜100km程度の狭い範囲に吹く地域固有の風を何というか",["局地風"]],["その例を2つ挙げよ",["海陸風、山谷風"]],["海陸風の発生過程",["海は熱容量が大きく暖まりにくく冷めにくいため、海面の温度はあまり変化しない。一方、陸は日中に日射で温度が高くなり、夜間は放射冷却で温度が低くなる。そのため日中は海上のほうが気圧が高くなって海から陸へ海風が吹き、夜間は陸上のほうが気圧が高くなって陸から海へ陸風が吹く"]],["山谷風の発生過程",["日中は太陽放射で地表面が暖められ、地表面付近の気圧が下がる。気圧傾度力が山側に傾き、重力との合力が斜面に沿って上向きになるため、山を吹き上がる谷風が吹く。夜間は放射冷却で地表面が冷え、地表面付近の気圧が上がる。気圧傾度力が谷側に傾き、合力が斜面に沿って下向きになるため、山を吹き下りる山風が吹く"]],["季節風とは何か",["季節によって大きく変化する地上の風（モンスーン）。大陸は海洋より熱容量が小さいため、冬は大陸に高気圧が発達して大陸から海洋へ、夏は大陸が暖まって低気圧になり海洋から大陸へ向かう風が吹く"]],["南北両半球の中緯度地域で幅の広い降水帯の見られる理由",["主に、この範囲を通り過ぎる温帯低気圧による降水のため"]],["日本付近で7月頃に、オーストラリア付近で1月頃に強い降水帯が見られる理由",["前線に伴う降水のため。日本付近の7月の降水帯は梅雨前線に伴うもの"]],["貿易風とは何か",["ハドレー循環で、亜熱帯高圧帯で下降した大気が地上を熱帯（赤道）に向かって流れるとき、転向力によって東風になったもの"]],["熱帯低気圧とは何か",["貿易風帯の海面水温の高い海域（約27℃以上）で、発達した積乱雲の集まりからできることが多い低気圧。温帯低気圧と違い、寒冷前線や温暖前線を伴わない"]],["熱帯低気圧のエネルギー源は？",["水蒸気が凝結するときに放出される潜熱"]],["北半球と南半球の中高緯度の等圧面等高線が北半球で季節差が大きく形が崩れやすい理由",["陸地の多い北半球では、大陸と海洋の熱容量の違いや大陸の地形が大気の流れに与える影響が、陸地の少ない南半球より強く現れるため"]],["夏の海洋の高気圧は背が高いか低いか理由とともに答えよ",["背が高い。ハドレー循環など、対流圏上層まで及ぶ大気の循環に関係していると考えられるため"]],["冬の大陸の高気圧は背が高いか低いか理由とともに答えよ",["背が低い。放射冷却で冷たくなった大陸に接した空気が冷やされて重くなり、地表付近に高気圧ができるため"]],["偏西風波動とは何か",["偏西風に低気圧や高気圧の渦の列が重なり、等圧面等高線が南北に大きく蛇行していること。中緯度で、低緯度と高緯度の温度差が原因で生じる熱輸送のしくみの1つ"]],["北半球の偏西風が南半球より複雑である理由",["北半球の偏西風は、大陸と海洋の温度差や、ヒマラヤ山脈・ロッキー山脈などの大規模な地形の影響を受けて変化するため"]],["温帯低気圧が発達する時の上空の気圧配置",["上空の気圧の谷が、地上の低気圧の中心のやや西側にある"]],["日本付近の冬の気象の特徴",["シベリア高気圧が発達し、千島・アリューシャン方面に低気圧が発達する西高東低（冬型）の気圧配置になり、北西の季節風が吹く。この季節風は日本海上で熱と水蒸気を受け取って雲をつくり、日本海側に大雪を降らせる。太平洋側は乾燥した晴天になることが多い"]],["山雪とは何か",["北西の季節風が脊梁山脈を越えるときに、日本海側の山間部に降らせる大雪"]],["里雪とは何か",["日本海の上空に強い寒気が南下して日本海が気圧の谷になったとき、日本海沿岸の平野部に降る大量の雪"]],["日本付近の春の気象の特徴",["シベリア高気圧が衰えて西高東低の気圧配置が崩れ、季節風が弱まる。南北の気温差が大きくなり、前線を伴う温帯低気圧が発生しやすくなる。温帯低気圧と移動性高気圧が交互に日本付近を通過する"]],["春一番とは何か",["立春から春分までの間に初めて吹く、日本海で急速に発達した低気圧（日本海低気圧）に向かって太平洋側から吹き込む、暖かく強い南よりの風"]],["日本付近の春の天気の変化の周期とその原因は？",["3〜5日程度。偏西風波動が東へ進むのに伴って、温帯低気圧と移動性高気圧が交互に日本付近を通過するため"]],["梅雨の特徴と原因",["6月〜7月の日本付近は、雨や曇りの日が多くなる。オホーツク海高気圧と北太平洋高気圧という性質の異なる2つの高気圧の境界付近に、東西に長くのびる停滞前線（梅雨前線）ができ、停滞するため。梅雨の終わりごろには、梅雨前線の南西側から流れ込む高温多湿の気流によって、大雨や集中豪雨が起こることがある"]],["ブロッキング高気圧とは",["ジェット気流の分流や大きな蛇行によって空気が停滞してできる、背の高い高気圧（例：オホーツク海高気圧）"]],["やませとは何か",["夏にオホーツク海高気圧が発達したとき、東日本の太平洋側に吹き出す北東の冷たい風。続くと東北地方に冷夏をもたらし、冷害の原因になる"]],["日本付近の夏の気象の特徴",["偏西風が日本の北へ移って弱まり、日本付近は発達した北太平洋高気圧に覆われる。南高北低（夏型）の気圧配置になり、高温多湿の南よりの季節風が吹く。よく晴れて全国的に蒸し暑い日が続き、内陸部や山岳部では積乱雲が発達して夕立や雷が起こる"]],["秋雨の特徴と原因",["北太平洋高気圧が弱まり、大陸から冷涼な高気圧が南下してくると、日本付近に再び停滞前線（秋雨前線）が現れ、雨や曇りの天気が続く。北太平洋高気圧が弱まっているため前線への水蒸気の補給が少なく、活動は梅雨前線ほど活発でないことが多い。ただし台風が近づくと活発になり、大雨をもたらすこともある"]],["竜巻、積乱雲、前線、台風、温帯低気圧を大規模な順に並べよ",["温帯低気圧 → 台風 → 前線 → 積乱雲 → 竜巻"]],["遅霜とは何か",["初夏に大きな移動性高気圧に覆われたとき、強い放射冷却によって起こる霜"]],["線状降水帯発生に寄与する要素を3つ答えよ",["①前線などで下層の気流が収束し、上昇気流の場になっている","②降水のもとになる、多量の水蒸気を含む暖かい空気が供給されている","③発生した積乱雲を移動させる、上空の大気の流れがある"]],["塩分とは何か",["海水に溶けている塩類の割合。海水1kg中の塩類の質量（g）を千分率（‰）で表す"]],["海水の塩分はどのくらいか",["およそ35‰"]],["塩類の組成比を多い順に2つ答えよ",["塩化ナトリウム（NaCl）→ 塩化マグネシウム（MgCl₂）"]],["表層混合層とは何か",["海面付近の、比較的水温が高く上下の温度差が小さい層。海水が太陽のエネルギーで暖められ、風や波によって混ぜられるためにできる。冬は厚く、夏は薄くなる"]],["水温躍層とは何か",["表層混合層と深層の間にある、深さとともに水温が急に変化する層"]],["深層とは何か",["海洋の深部の、水温が1〜3℃と低く、深さによる温度変化の小さい層。季節や場所によらず水温がほぼ一定で、ゆっくりと循環している"]],["塩分が高い地域はどこか",["亜熱帯高圧帯（緯度20°〜30°）。降水量に対して蒸発量が多いため"]],["塩分の低い地域はどこか",["高緯度（氷が融けるため）、中緯度（温帯低気圧などによる降水のため）、赤道付近（熱帯収束帯での降水のため）、河川が流れ込む陸地付近"]],["海水の水温と塩分のグラフを何というか",["T−S図"]],["風浪とは何か",["風の力を直接受けてできる波"]],["うねりとは何か",["風浪が強風域から離れたり、風が弱まったりした後に残る、波の形の整った規則的な波"]],["表面波とは何か",["深い海の海面の波のように、水深に比べて波長が十分に短い波"]],["表面波の速さを表す式は？",["v = gT/2π = √(gL/2π)","（g：重力加速度、T：周期、L：波長）"]],["長波とは何か",["浅い海の波や津波のように、水深に比べて波長が十分に長い波"]],["長波の速さを表す式は？",["v = √(gh)","（g：重力加速度、h：海の深さ）"]],["津波とは何か",["海底で大規模な隆起や沈降が急に起こり、海底から海面までの海水全体が動いてできる、周期が数十分、波長が数百kmもある巨大な波。深い海を伝わるときでも長波としてふるまう"]],["海流とは何か",["海洋表層での、ほぼ一定方向の海水の流れ"]],["エクマン吹送流とは何か",["風に引きずられた海面付近の海水の流れが、転向力によって北半球では風の進む方向の右側（南半球では左側）にそれ、深くなるにつれてさらに右にそれていく流れ"]],["エクマン輸送の特徴",["風による海面付近の海水全体の流れで、風向に対して北半球では直角右向き、南半球では直角左向きになる"]],["地衡流とは何か",["圧力傾度力と転向力がつり合った状態で、海水面の高いほうを右に見ながら（北半球）等高線と平行に流れる海水の流れ"]],["海洋の中央部分の水面が高くなる理由",["エクマン輸送によって、北半球では貿易風帯の海水は北へ、偏西風帯の海水は南へ運ばれる。そのため、貿易風と偏西風に挟まれた海域で海水面が1〜2m程度高くなる"]],["西岸強化の仕組み",["海流にはたらく転向力は高緯度ほど大きい。そのため北半球では、西岸で北向きの海流に伴って時計回りの流れが生じ、北向きの海流が強められる。一方、東岸では南向きの海流に伴って反時計回りの流れが生じ、南向きの海流が弱められる。その結果、環流の西側に強い流れが現れる"]],["熱塩循環とは何か",["水温や塩分の違いによる海水の密度差で起こる、海洋の鉛直方向の流れ。高緯度の低温で密度の大きい表層の海水が深部へ沈み込み、海底を赤道方向へ流れ、それまで深層にあった海水が押し出されて上昇する"]],["深層循環とは何か",["北大西洋北部や南極付近から沈み込み、全地球の深層を巡る海水の大循環。1000〜2000年かけて循環する"]],["潮汐とは何か",["1日に1〜2回ずつくり返す、周期的な海水面の昇降"]],["起潮力とは何か",["月や太陽の引力などによって海水が動き、潮汐を起こす力（潮汐力）"]],["月による起潮力と太陽による起潮力はどちらが大きいか",["月（太陽による起潮力の約2倍）"]],["高潮の発生過程",["台風や温帯低気圧が通過するとき、気圧の低下で海面が吸い上げられ、強風で海水が吹き寄せられて起こる。大潮の満潮時に起こると、遠浅の海や陸側に入り込んだ湾で大きな被害が出やすい"]],["テレコネクションとは何か",["離れた場所の気象が連動していること"]],["エルニーニョ現象の発生過程",["平常時は東よりの貿易風によって、暖水層が赤道太平洋の西部に吹き寄せられている。何らかの原因で貿易風が弱まると、赤道太平洋の中〜東部の暖水層が厚くなり、冷水の湧昇も弱まる。その結果、赤道太平洋東部の海水温が平常時より高くなる。活発な対流の領域も中〜東部に移るため、貿易風の弱い状態が続き、エルニーニョ現象も続く"]],["ラニーニャ現象の発生過程",["貿易風が平年より強くなって暖水層がさらに西部に吹き寄せられ、冷水の湧昇も強まる。その結果、赤道太平洋の中〜東部の海水温が平年より低くなる"]],["エルニーニョ現象が起こると日本の気候はどうなるか",["夏は北太平洋高気圧が弱くなり、梅雨明けが遅れたり、夏の平均気温が下がったりする傾向がある。冬は季節風が平年より弱くなり、気温が高くなることが多い"]],["南太平洋の東西における海面気圧は一方が低く一方が高いが、これを何というか",["南方振動"]],["これらの大気と海洋の現象をまとめて何というか",["エルニーニョ・南方振動（ENSO）"]],["黒潮や湾流の周辺で海洋から大気への熱輸送が大きい理由",["海面水温のほうが大気の温度より高いため。熱帯から来る海流の水温が高いうえ、冬は西にある大陸から吹き出す季節風によって、この海域の大気が冷たくなる"]],["北極振動とは何か",["北半球に見られる半球規模の大気の変動。北極の上空の気圧が平年より低いときは中緯度の気圧が高くなり、反対に北極の上空の気圧が高いときは中緯度の気圧が低くなる"]],["北極振動が正であるとはどういうことか",["北極の上空の気圧が平年より低く、中緯度の気圧が高い状態。偏西風が強く、蛇行が小さくなり、日本付近は暖冬になる傾向がある"]],["都市気候とは何か",["人口が集中し、地表が舗装されて草や木が少なくなった都市に生まれる、都市特有の気候"]],["都市部の気温が郊外より高くなる現象を何というか",["ヒートアイランド現象"]],["都市部で汚染物質が拡散されず留まる理由",["郊外では夜間の放射冷却でできる逆転層が地表まで達するが、都市部は気温が高いため、逆転層が上空にできる。都市部は逆転層の下の暖かい空気にドーム状に覆われ、その空気が閉じ込められるため、汚染物質が拡散されない"]],["オゾンホールの発生過程を説明せよ",["フロンを起源とする塩素分子が、冬の南極上空で形成される極成層圏雲の表面で生成・蓄積され、春になると太陽光で分解されて塩素原子となり、オゾンを分解することでオゾンホールが発生する"]]]];
@@ -223,19 +341,38 @@ const store = {
 };
 // Added questions live only in this browser. Their IDs ("1-u…") never collide with or shift the built-in "章-番号" IDs.
 let custom = store.get("custom",[]);
-const ALL = [];
+const ALL = [], BY_ID = new Map();
 function buildAll(){
-  ALL.length=0;
+  ALL.length=0; BY_ID.clear();
   DATA.forEach((rows,ci)=>{
     rows.forEach((r,i)=>ALL.push({id:(ci+1)+"-"+(i+1),ch:ci+1,n:i+1,q:r[0],a:r[1]}));
     custom.filter(c=>c.ch===ci+1).forEach((c,i)=>ALL.push({id:c.id,ch:c.ch,n:rows.length+i+1,q:c.q,a:c.a,added:true}));
   });
+  ALL.forEach(c=>{ c.fq=fold(c.q); c.fa=fold(c.a.join("\n")); BY_ID.set(c.id,c); });
 }
+
+// Search folds width (NFKC), case and katakana→hiragana, so "sio2" finds SiO₂ and "じおいど" finds ジオイド.
+// `map` points each folded character back to its index in the original text, for highlighting.
+function foldMap(s){
+  let out="", map=[];
+  for(let i=0;i<s.length;){
+    const w=s.codePointAt(i)>0xffff?2:1;
+    const f=[...s.slice(i,i+w).normalize("NFKC").toLowerCase()].map(k=>{const c=k.charCodeAt(0); return c>=0x30a1&&c<=0x30f6?String.fromCharCode(c-0x60):k;}).join("");
+    for(let j=0;j<f.length;j++) map.push(i);
+    out+=f; i+=w;
+  }
+  return {out,map};
+}
+function fold(s){ return foldMap(s).out; }
+
 buildAll();
 let known = new Set(store.get("known",[]));
-let st = Object.assign({ch:0,filter:"",shuffle:false,reverse:false,view:"card"}, store.get("prefs",{}));
+let st = Object.assign({ch:0,filter:"",shuffle:false,reverse:false,view:"card",hideAns:false}, store.get("prefs",{}));
 if(st.unknown){ st.filter="new"; delete st.unknown; }  // prefs saved before the review filter existed
 if(st.filter==="unknown") st.filter="new";               // "未習得のみ" before 未判定 was split out
+if(!["","new","missed","due"].includes(st.filter)) st.filter="";
+if(!["card","list","add"].includes(st.view)) st.view="card";
+if(!(st.ch>=0&&st.ch<CH.length)) st.ch=0;
 
 /* spaced review: each known card has a stage (lv) and a due day; the interval grows each time it is recalled on time */
 const INTERVALS=[1,3,7,14,30,60,120];
@@ -257,134 +394,302 @@ function forget(id){ known.delete(id); delete srs[id]; missed.add(id); }
 function clear(id){ known.delete(id); delete srs[id]; missed.delete(id); }
 const status=id=>known.has(id)?(isDue(id)?"due":"known"):missed.has(id)?"missed":"new";
 const FILTERS={new:"未判定",missed:"未習得",due:"復習"};
-function dueLabel(id){ const d=srs[id]?srs[id].due-today():0; return d<=0?"今日復習":d===1?"明日復習":`${d}日後に復習`; }
-let deck=[], idx=0, shown=false;
+const LABEL={due:"要復習",known:"覚えた",missed:"未習得",new:"未判定"};
+function daysLeft(id){ return srs[id]?srs[id].due-today():0; }
+function dueLabel(id){ const d=daysLeft(id); return d<=0?"今日復習":d===1?"明日復習":`${d}日後に復習`; }
+
+// deck = the cards being studied, in order; idx = the card shown (idx === deck.length is the end-of-round screen).
+// round remembers what was marked since the deck was built; pos keeps each chapter+filter's place across visits.
+let deck=[], idx=0, shown=false, round=new Map(), undoSnap=null;
+let posMap = store.get("pos",{}); if(!posMap||typeof posMap!=="object") posMap={};
+const peeked = new Set();
+const END="~end";
 
 const $=id=>document.getElementById(id);
-const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-function savePrefs(){store.set("prefs",{ch:st.ch,filter:st.filter,shuffle:st.shuffle,reverse:st.reverse,view:st.view})}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pct=(a,b)=>b?a/b*100:0;
+const touchUI=matchMedia("(hover: none) and (pointer: coarse)").matches;
+const calm=matchMedia("(prefers-reduced-motion: reduce)");
+function savePrefs(){store.set("prefs",{ch:st.ch,filter:st.filter,shuffle:st.shuffle,reverse:st.reverse,view:st.view,hideAns:st.hideAns})}
 function saveKnown(){store.set("known",[...known]); store.set("srs",srs); store.set("missed",[...missed])}
-function pool(){return ALL.filter(c=>!st.ch||c.ch===st.ch)}
+function pool(ch=st.ch){return ALL.filter(c=>!ch||c.ch===ch)}
+function counts(p){ const n={all:p.length,known:0,due:0,missed:0,new:0}; p.forEach(c=>n[status(c.id)]++); n.got=n.known+n.due; return n; }
+function shuffled(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
-function buildDeck(keepId){
-  let d = pool();
-  if(st.filter) d = d.filter(c=>status(c.id)===st.filter);
-  if(st.shuffle){d=d.slice();for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]]}}
-  deck=d; idx=0;
-  if(keepId){const k=deck.findIndex(c=>c.id===keepId); if(k>=0) idx=k;}
-  shown=false;
+function posKey(){return st.ch+"|"+(st.filter||"all")}
+function savePos(){
+  posMap[posKey()]={cur:idx<deck.length?deck[idx].id:END, order:st.shuffle?deck.map(c=>c.id):null};
+  store.set("pos",posMap);
+}
+// mode: "restore" = resume this chapter+filter where it was left, "anchor" = stay on the current card, "fresh" = start over
+function buildDeck(mode){
+  let saved=null;
+  if(mode==="restore") saved=posMap[posKey()]||null;
+  else if(mode==="anchor") saved={cur:idx<deck.length?deck[idx].id:null, order:null};
+  let d=pool(); if(st.filter) d=d.filter(c=>status(c.id)===st.filter);
+  const order=saved&&Array.isArray(saved.order)?saved.order:null;
+  if(st.shuffle){
+    if(order){ const rank=new Map(order.map((id,i)=>[id,i]));
+      d=d.filter(c=>rank.has(c.id)).sort((a,b)=>rank.get(a.id)-rank.get(b.id)).concat(shuffled(d.filter(c=>!rank.has(c.id)))); }
+    else d=shuffled(d);
+  }
+  deck=d; idx=0; shown=false; round=new Map(); undoSnap=null;
+  if(saved&&saved.cur&&saved.cur!==END&&(!st.shuffle||order)) idx=locate(saved.cur, st.shuffle?order:pool().map(c=>c.id));
+  savePos();
+}
+// The card to resume on: the saved one, or the first one after it that is still in the deck.
+function locate(id, order){
+  const at=new Map(deck.map((c,i)=>[c.id,i]));
+  let p=order.indexOf(id); if(p<0) return 0;
+  for(;p<order.length;p++) if(at.has(order[p])) return at.get(order[p]);
+  return 0;
 }
 
 function renderStrata(){
   $("strata").innerHTML = CH.map((c,i)=>{
-    const p = ALL.filter(x=>!i||x.ch===i), k=p.filter(x=>known.has(x.id)).length, dn=p.filter(x=>isDue(x.id)).length;
-    return `<button style="--k:${c.k}" aria-pressed="${st.ch===i}" data-ch="${i}">
-      <span class="t">${c.t}</span><span class="s">${c.s||"すべて"}</span><span class="n">${k}/${p.length}</span>${dn?`<span class="dn" title="今日の復習">${dn}</span>`:""}
-      <span class="bar"><i style="width:${p.length?k/p.length*100:0}%"></i></span></button>`;
+    const n=counts(pool(i));
+    return `<button type="button" style="--k:${c.k}" aria-pressed="${st.ch===i}" data-ch="${i}" aria-label="${c.t}${c.s?"（"+c.s+"）":""} 覚えた ${n.got}／${n.all}問${n.due?`、復習 ${n.due}問`:""}">
+      <span class="t">${c.t}${n.due?`<span class="dn">${n.due}</span>`:""}</span><span class="s">${c.s||"すべて"}</span><span class="n">${n.got}/${n.all}</span>
+      <span class="meter" aria-hidden="true"><i class="mk" style="width:${pct(n.got,n.all)}%"></i><i class="mm" style="width:${pct(n.missed,n.all)}%"></i></span></button>`;
   }).join("");
   document.documentElement.style.setProperty("--accent", st.ch?CH[st.ch].k:"var(--c1)");
-  const dueAll=ALL.filter(c=>isDue(c.id)).length;
-  [["new","oNew"],["missed","oMissed"],["due","oDue"]].forEach(([f,b])=>{
-    const n=pool().filter(c=>status(c.id)===f).length;
-    $(b).textContent=`${FILTERS[f]} ${n}`; $(b).disabled=!n&&st.filter!==f;
-  });
-  const b=$("banner"), show=dueAll>0&&st.filter!=="due"&&st.view!=="add";
-  b.hidden=!show; b.style.display=show?"":"none";
-  if(show){
-    b.innerHTML=`<span>復習の時期が来た問題が <b>${dueAll}</b> 問あります</span><button class="btn" id="goReview">今日の復習を始める</button>`;
-    $("goReview").onclick=()=>{st.ch=0; st.filter="due"; st.view="card"; syncChips(); savePrefs(); buildDeck(); render();};
-  }
+}
+function renderSeg(){
+  const n=counts(pool());
+  $("seg").innerHTML=[["","すべて",n.all],["new","未判定",n.new],["missed","未習得",n.missed],["due","復習",n.due]].map(([f,l,c])=>
+    `<button type="button" data-f="${f}" class="${f==="due"&&c?"hot":""}" aria-pressed="${st.filter===f}" aria-label="${l} ${c}問"${f&&!c&&st.filter!==f?" disabled":""}><span class="l">${l}</span><span class="c">${c}</span></button>`).join("");
+}
+function renderBanner(){
+  const dueAll=ALL.filter(c=>isDue(c.id)).length, b=$("banner");
+  b.hidden=!(dueAll>0&&st.filter!=="due"&&st.view!=="add");
+  if(!b.hidden) b.innerHTML=`<span class="msg">今日の復習 <b>${dueAll}</b> 問</span><button type="button" id="goReview">復習を始める</button>`;
 }
 
-function renderCard(){
-  const p=pool(), k=p.filter(x=>known.has(x.id)).length, m=p.filter(x=>missed.has(x.id)).length;
-  $("score").textContent=`覚えた ${k}・未習得 ${m}・未判定 ${p.length-k-m}`;
-  const host=$("cardHost");
-  if(!deck.length || idx>=deck.length){
-    $("pos").textContent = deck.length?`${deck.length} / ${deck.length}`:"0 / 0";
-    const rev=st.filter==="due", tm=today()+1, next=p.filter(c=>known.has(c.id)&&srs[c.id]&&srs[c.id].due===tm).length;
-    const title=rev?"今日の復習は終わりです":deck.length?"この範囲を一周しました":`${FILTERS[st.filter]}の問題はありません`;
-    host.innerHTML = `<div class="card done" style="cursor:default"><h2>${title}</h2>
-      <div style="color:var(--muted);font-size:.9rem">覚えた ${k} / ${p.length}${rev?`　明日の復習 ${next} 問`:""}</div>
-      <button class="btn good" id="restart">${deck.length&&!rev?"もう一周する":"すべて表示する"}</button></div>`;
-    $("restart").onclick=()=>{ if(!deck.length||rev){st.filter="";syncChips();savePrefs();} buildDeck(); render(); };
-    ["prev","again","good","next"].forEach(b=>$(b).disabled = b==="prev" ? !deck.length : true);
-    return;
-  }
-  const c=deck[idx];
-  $("pos").textContent=`${idx+1} / ${deck.length}`;
+function renderCard(dir){
+  const host=$("cardHost"), ctl=$("controls"), total=deck.length, end=idx>=total;
+  const hadFocus=document.activeElement&&document.activeElement.id==="card";
+  // Filtered decks shrink as cards are learned, so they count what is left rather than a position.
+  const left=deck.filter(c=>!round.has(c.id)).length;
+  $("pos").textContent = !total?"0 問" : st.filter ? `残り ${deck.length} 問` : end?`${total} / ${total}`:`${idx+1} / ${total}`;
+  $("track").style.width = (st.filter ? pct(round.size,round.size+left) : end?100:pct(idx,total))+"%";
+  ctl.classList.toggle("end",end); ctl.classList.toggle("shown",shown&&!end);
+  $("prev").disabled = idx===0; $("next").disabled = end;
+  if(end){ host.innerHTML=doneHTML(); return; }
+  const c=deck[idx], ch=CH[c.ch], s=status(c.id);
   const front = st.reverse ? c.a.map(esc).join("<br>") : esc(c.q);
   const back = st.reverse ? [c.q] : c.a;
-  host.innerHTML = `<div class="card" id="card" tabindex="0" role="button" aria-label="カードをめくる">
-    <div class="q"><div style="display:flex;justify-content:space-between;gap:8px"><span class="tag">${CH[c.ch].t}　No.${c.n}${c.added?'<span class="new">追加</span>':""}</span><span class="known-mark ${status(c.id)}">${{due:"復習",known:"覚えた・"+dueLabel(c.id),missed:"未習得",new:"未判定"}[status(c.id)]}</span></div>
-    <div class="qtext"${st.reverse?' style="font-family:var(--body);font-weight:700;font-size:1.05rem"':""}>${front}</div></div>
-    ${shown?`<div class="a"><ul>${back.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:`<div class="hint">タップして${st.reverse?"問題":"答え"}を表示</div>`}
+  const what = st.reverse ? "問題" : "答え";
+  host.innerHTML = `<div class="card${dir?" in-"+dir:""}" id="card" style="--k:${ch.k}" tabindex="0" role="button" aria-expanded="${shown}">
+    <div class="q"><div class="chead"><span class="tag">${ch.t}　No.${c.n}${c.added?'<span class="added">追加</span>':""}</span><span class="st ${s}">${s==="known"?"覚えた・"+dueLabel(c.id):LABEL[s]}</span></div>
+    <div class="qtext${st.reverse?" rev":""}">${front}</div></div>
+    ${shown?`<div class="a"><ul>${back.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`
+      :`<div class="hint">${touchUI?`タップで${what}を表示 ・ 左右スワイプで移動`:`クリックか Space で${what}を表示`}</div>`}
   </div>`;
-  $("card").onclick=flip;
-  $("prev").disabled = idx===0;
-  $("next").disabled = false;
-  $("again").disabled = $("good").disabled = !shown;
+  if(hadFocus) $("card").focus({preventScroll:true});
+}
+
+function doneHTML(){
+  const n=counts(pool()), f=st.filter, label=st.ch?CH[st.ch].t:"全章";
+  const good=[...round.values()].filter(v=>v==="good").length, again=round.size-good;
+  const tm=today()+1, tomorrow=pool().filter(c=>known.has(c.id)&&srs[c.id]&&srs[c.id].due===tm).length;
+  const title = deck.length ? (f?`${FILTERS[f]}の問題を一周しました`:"一周しました")
+    : f==="due" ? (round.size?"今日の復習は終わりです":"今日の復習はありません")
+    : round.size ? `${FILTERS[f]}の問題はなくなりました` : `${FILTERS[f]}の問題はありません`;
+  const acts=[];
+  if(f&&deck.length) acts.push(["again",`もう一周（${deck.length}問）`]);
+  if(f!=="missed"&&n.missed) acts.push(["missed",`未習得の ${n.missed} 問を復習`]);
+  if(!f&&n.new&&n.new<n.all) acts.push(["new",`未判定の ${n.new} 問へ`]);
+  if(!f) acts.push(["again","もう一周する"]);
+  else acts.push(["all","すべての問題へ"]);
+  return `<div class="card done" style="--k:${st.ch?CH[st.ch].k:"var(--ink)"}">
+    <h2>${title}</h2>
+    ${round.size?`<p>今回　覚えた ${good}・まだ ${again}</p>`:""}
+    <div class="meter" aria-hidden="true"><i class="mk" style="width:${pct(n.got,n.all)}%"></i><i class="mm" style="width:${pct(n.missed,n.all)}%"></i></div>
+    <div class="legend"><span><i style="background:var(--k)"></i>覚えた ${n.got}</span><span><i style="background:color-mix(in srgb,var(--again) 70%,var(--surface))"></i>未習得 ${n.missed}</span><span><i style="background:var(--line)"></i>未判定 ${n.new}</span></div>
+    ${tomorrow?`<p>${label}の明日の復習 ${tomorrow} 問</p>`:""}
+    <div class="acts">${acts.slice(0,3).map(([a,l],i)=>`<button type="button" class="btn${i?"":" good"}" data-act="${a}">${l}</button>`).join("")}</div>
+  </div>`;
+}
+function doneAction(a){
+  if(a==="again"&&st.filter){
+    // go round the same cards again: rebuilding by status would drop the ones just marked まだ
+    deck=st.shuffle?shuffled(deck):deck.slice(); idx=0; shown=false; round=new Map(); undoSnap=null; savePos();
+  } else {
+    if(a!=="again"){ st.filter=a==="all"?"":a; savePrefs(); }
+    buildDeck("fresh");
+  }
+  render("next");
 }
 
 function renderList(){
-  const term=$("q").value.trim().toLowerCase();
+  const words=fold($("q").value).split(/\s+/).filter(Boolean);
   let p=pool(); if(st.filter) p=p.filter(c=>status(c.id)===st.filter);
-  if(term) p=p.filter(c=>(c.q+" "+c.a.join(" ")).toLowerCase().includes(term));
-  $("lcount").textContent=`${p.length} 問`;
-  $("list").innerHTML = p.length ? p.map(c=>`<div class="row"><div class="rq"><span class="tag">${CH[c.ch].t} ${c.n}</span>${c.added?'<span class="new">追加</span>':""}　${esc(c.q)}</div>
-    <button class="rk ${status(c.id)}" data-id="${c.id}" aria-pressed="${known.has(c.id)}" title="${known.has(c.id)?dueLabel(c.id):""}">${{due:"要復習",known:"覚えた",missed:"未習得",new:"未判定"}[status(c.id)]}</button>
-    <div class="ra">${c.a.map(x=>`<div>${esc(x)}</div>`).join("")}</div></div>`).join("")
-    : `<div class="row" style="color:var(--muted)">該当する問題はありません</div>`;
+  if(words.length) p=p.filter(c=>words.every(w=>c.fq.includes(w)||c.fa.includes(w)));
+  $("lcount").textContent = words.length?`${p.length} 件`:`${p.length} 問`;
+  const hide=st.hideAns&&!words.length;
+  $("list").innerHTML = p.length ? p.map(c=>rowHTML(c,words,hide)).join("")
+    : `<div class="empty">${words.length?"見つかりませんでした":"該当する問題はありません"}</div>`;
+}
+function rowHTML(c,words,hide){
+  const s=status(c.id), ch=CH[c.ch];
+  return `<div class="row" style="--k:${ch.k}"><div class="rq"><span class="rtag">${st.ch?"No.":ch.t+" "}${c.n}</span>${c.added?'<span class="added">追加</span>':""}${hl(c.q,words)}</div>
+    <button type="button" class="rk ${s}" data-id="${c.id}" title="${known.has(c.id)?dueLabel(c.id):""}" aria-label="${LABEL[s]}。押すと${known.has(c.id)?"未習得":"覚えた"}にします">${LABEL[s]}</button>
+    ${!hide||peeked.has(c.id)?answerHTML(c,words):`<button type="button" class="peek" data-peek="${c.id}">答えを表示</button>`}</div>`;
+}
+function answerHTML(c,words){ return `<div class="ra">${c.a.map(x=>`<div>${hl(x,words)}</div>`).join("")}</div>`; }
+function hl(text,words){
+  if(!words.length) return esc(text);
+  const {out,map}=foldMap(text), ranges=[];
+  words.forEach(w=>{ for(let i=out.indexOf(w);i!==-1;i=out.indexOf(w,i+w.length)){
+    const last=map[i+w.length-1]; ranges.push([map[i], last+(text.codePointAt(last)>0xffff?2:1)]); } });
+  ranges.sort((a,b)=>a[0]-b[0]);
+  let html="", at=0;
+  ranges.forEach(([s,e])=>{ if(e<=at) return; s=Math.max(s,at); html+=esc(text.slice(at,s))+"<mark>"+esc(text.slice(s,e))+"</mark>"; at=e; });
+  return html+esc(text.slice(at));
 }
 
-function render(){
-  renderStrata();
-  const v=st.view, isCard=v==="card", isAdd=v==="add";
+function render(dir){
+  const v=st.view, isAdd=v==="add";
   [["card","cardView","vCard"],["list","listView","vList"],["add","addView","vAdd"]].forEach(([k,sec,btn])=>{
-    $(sec).hidden=v!==k; $(sec).style.display=v===k?"flex":"none"; $(btn).setAttribute("aria-pressed",v===k);
+    $(sec).hidden=v!==k; $(btn).setAttribute("aria-pressed",v===k);
   });
-  $("strata").style.display=$("resetBox").style.display=isAdd?"none":"";
-  document.querySelector(".opts").style.display=isAdd?"none":"";
-  $("oReverse").style.display=isCard?"":"none"; $("oShuffle").style.display=isCard?"":"none";
-  isCard?renderCard():isAdd?renderAdd():renderList();
+  $("strata").hidden=$("seg").hidden=$("resetBox").hidden=isAdd;
+  if(v!=="card") hideSnack();
+  renderStrata(); renderSeg(); renderBanner(); syncToggles();
+  v==="card"?renderCard(dir):isAdd?renderAdd():renderList();
 }
-function syncChips(){
-  $("oNew").setAttribute("aria-pressed",st.filter==="new");
-  $("oMissed").setAttribute("aria-pressed",st.filter==="missed");
-  $("oDue").setAttribute("aria-pressed",st.filter==="due");
+function syncToggles(){
   $("oShuffle").setAttribute("aria-pressed",st.shuffle);
   $("oReverse").setAttribute("aria-pressed",st.reverse);
+  $("oHide").setAttribute("aria-pressed",st.hideAns);
+  $("reveal").textContent = st.reverse?"問題を見る":"答えを見る";
 }
-function flip(){ if(idx<deck.length){shown=!shown; renderCard();} }
-function go(d){ idx=Math.max(0,Math.min(deck.length,idx+d)); shown=false; renderCard(); }
+function announce(text){ const l=$("live"); l.textContent=""; setTimeout(()=>{l.textContent=text},50); }
+function flip(){
+  if(idx>=deck.length) return;
+  shown=!shown; renderCard();
+  if(shown){ hideSnack(); const c=deck[idx]; announce((st.reverse?"問題：":"答え：")+(st.reverse?c.q:c.a.join("。"))); answerIntoView(); }
+}
+function go(d){
+  const n=Math.max(0,Math.min(deck.length,idx+d));
+  if(n===idx) return;
+  idx=n; shown=false; savePos(); renderCard(d>0?"next":"prev"); cardIntoView();
+}
 function mark(ok){
   if(!shown||idx>=deck.length) return;
-  const c=deck[idx];
-  ok?learn(c.id):forget(c.id); saveKnown();
-  if(!ok && st.filter){ /* keep it in rotation: move to end */ deck.push(deck.splice(idx,1)[0]); shown=false; renderStrata(); renderCard(); return; }
-  if(ok && st.filter){ deck.splice(idx,1); shown=false; renderStrata(); renderCard(); return; }
-  renderStrata(); go(1);
+  const c=deck[idx], was=known.has(c.id);
+  undoSnap={id:c.id, known:was, missed:missed.has(c.id), srs:srs[c.id]&&{...srs[c.id]}, deck:deck.slice(), idx, round:round.get(c.id)};
+  ok?learn(c.id):forget(c.id); saveKnown(); round.set(c.id, ok?"good":"again");
+  if(st.filter){
+    // in a filtered deck: learned cards leave it, まだ sends the card to the back for another go
+    if(ok) deck.splice(idx,1);
+    else { deck.push(deck.splice(idx,1)[0]); if(deck.length>1&&deck[idx]===c) idx=deck.length; }
+  } else idx++;
+  shown=false; savePos(); renderStrata(); renderSeg(); renderBanner(); renderCard("next"); cardIntoView();
+  const d=daysLeft(c.id);
+  snack(ok ? `覚えた・次の復習は${d<=1?"明日":d+"日後"}` : was?"未習得に戻しました":"未習得にしました");
+}
+function undo(){
+  const u=undoSnap; if(!u) return;
+  undoSnap=null; hideSnack();
+  u.known?known.add(u.id):known.delete(u.id);
+  u.missed?missed.add(u.id):missed.delete(u.id);
+  if(u.srs) srs[u.id]=u.srs; else delete srs[u.id];
+  u.round===undefined?round.delete(u.id):round.set(u.id,u.round);
+  saveKnown(); deck=u.deck; idx=u.idx; shown=true; st.view="card"; savePrefs(); savePos();
+  render("prev"); cardIntoView(); announce("取り消しました");
+}
+let snackTimer;
+function snack(text){
+  const s=$("snack");
+  s.innerHTML=`<span>${esc(text)}</span><button type="button" id="undoBtn">取り消す</button>`;
+  s.hidden=false; $("undoBtn").onclick=undo;
+  clearTimeout(snackTimer); snackTimer=setTimeout(hideSnack,5000);
+}
+function hideSnack(){ clearTimeout(snackTimer); $("snack").hidden=true; }
+// Keep the card in sight after moving on from a long answer, and scroll a revealed answer up from behind the pinned controls.
+function cardIntoView(){
+  const r=$("cardHost").getBoundingClientRect();
+  if(r.top<0) window.scrollBy(0,r.top-10);
+}
+function answerIntoView(){
+  const a=document.querySelector("#card .a"); if(!a) return;
+  const ctl=$("controls"), dock=getComputedStyle(ctl).position==="sticky"?ctl.offsetHeight:0;
+  const r=a.getBoundingClientRect(), over=Math.min(r.bottom,r.top+120)-(innerHeight-dock-8);
+  if(over>0) window.scrollBy({top:over,behavior:calm.matches?"auto":"smooth"});
 }
 
-$("strata").onclick=e=>{const b=e.target.closest("button"); if(!b) return; st.ch=+b.dataset.ch; savePrefs(); buildDeck(); render();};
-[["new","oNew"],["missed","oMissed"],["due","oDue"]].forEach(([f,b])=>$(b).onclick=()=>{st.filter=st.filter===f?"":f; syncChips(); savePrefs(); buildDeck(); render();});
-$("oShuffle").onclick=()=>{st.shuffle=!st.shuffle; syncChips(); savePrefs(); buildDeck(); render();};
-$("oReverse").onclick=()=>{st.reverse=!st.reverse; syncChips(); savePrefs(); shown=false; render();};
-$("vCard").onclick=()=>{st.view="card"; savePrefs(); render();};
-$("vList").onclick=()=>{st.view="list"; savePrefs(); render();};
-$("vAdd").onclick=()=>{st.view="add"; savePrefs(); render();};
+/* swipe the card sideways to move between questions */
+(function(){
+  const host=$("cardHost"); let drag=null, swallow=false;
+  host.addEventListener("pointerdown",e=>{
+    swallow=false;
+    if(e.button>0||!e.isPrimary||e.target.closest("button")) return;
+    const card=e.target.closest(".card"); if(!card) return;
+    drag={id:e.pointerId,x:e.clientX,y:e.clientY,t:e.timeStamp,dx:0,on:false,card};
+  });
+  host.addEventListener("pointermove",e=>{
+    if(!drag||e.pointerId!==drag.id) return;
+    const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+    if(!drag.on){
+      if(Math.abs(dx)<8&&Math.abs(dy)<8) return;
+      if(Math.abs(dy)>=Math.abs(dx)){ drag=null; return; }  // vertical: let the page scroll
+      drag.on=true; drag.card.classList.remove("snap","in-next","in-prev");
+      try{ drag.card.setPointerCapture(e.pointerId); }catch(err){}
+    }
+    drag.dx=dx;
+    const stuck=(dx>0&&idx===0)||(dx<0&&idx>=deck.length), x=stuck?dx/4:dx;
+    drag.card.style.transform=`translateX(${x}px) rotate(${x/40}deg)`;
+  });
+  const end=e=>{
+    if(!drag||e.pointerId!==drag.id) return;
+    const {card,dx,t,on}=drag; drag=null;
+    if(!on) return;
+    swallow=true;
+    const dir=dx<0?1:-1, fast=Math.abs(dx)/Math.max(1,e.timeStamp-t)>.45&&Math.abs(dx)>30;
+    const ok=e.type==="pointerup"&&(Math.abs(dx)>Math.min(90,card.offsetWidth*.25)||fast)&&(dir>0?idx<deck.length:idx>0);
+    if(!ok){ card.classList.add("snap"); card.style.transform=""; return; }
+    if(calm.matches) return go(dir);
+    card.classList.add("fly"); card.style.transform=`translateX(${-dir*(card.offsetWidth+40)}px) rotate(${-dir*6}deg)`;
+    setTimeout(()=>go(dir),140);
+  };
+  host.addEventListener("pointerup",end);
+  host.addEventListener("pointercancel",end);
+  host.addEventListener("click",e=>{
+    if(swallow){ swallow=false; return; }
+    const a=e.target.closest("[data-act]"); if(a) return doneAction(a.dataset.act);
+    if(e.target.closest("#card")) flip();
+  });
+})();
+
+$("strata").onclick=e=>{const b=e.target.closest("button[data-ch]"); if(!b||+b.dataset.ch===st.ch) return; st.ch=+b.dataset.ch; savePrefs(); buildDeck("restore"); render();};
+$("seg").onclick=e=>{const b=e.target.closest("button[data-f]"); if(!b||b.disabled||b.dataset.f===st.filter) return; st.filter=b.dataset.f; savePrefs(); buildDeck("restore"); render();};
+$("banner").onclick=e=>{ if(!e.target.closest("#goReview")) return; st.ch=0; st.filter="due"; st.view="card"; savePrefs(); buildDeck("fresh"); render(); };
+$("oShuffle").onclick=()=>{st.shuffle=!st.shuffle; savePrefs(); buildDeck(st.shuffle?"fresh":"anchor"); render();};
+$("oReverse").onclick=()=>{st.reverse=!st.reverse; savePrefs(); shown=false; render();};
+$("oHide").onclick=()=>{st.hideAns=!st.hideAns; peeked.clear(); savePrefs(); render();};
+[["card","vCard"],["list","vList"],["add","vAdd"]].forEach(([v,b])=>$(b).onclick=()=>{ if(st.view===v) return; st.view=v; savePrefs(); render(); window.scrollTo(0,0); });
 $("q").oninput=renderList;
-$("list").onclick=e=>{const b=e.target.closest(".rk"); if(!b) return; const id=b.dataset.id; known.has(id)?forget(id):learn(id); saveKnown(); renderStrata(); renderList();};
+$("list").onclick=e=>{
+  const pk=e.target.closest("[data-peek]");
+  if(pk){ peeked.add(pk.dataset.peek); pk.outerHTML=answerHTML(BY_ID.get(pk.dataset.peek),[]); return; }
+  const b=e.target.closest(".rk"); if(!b) return;
+  const id=b.dataset.id; known.has(id)?forget(id):learn(id); saveKnown(); undoSnap=null;
+  renderStrata(); renderSeg(); renderBanner(); renderList();
+  const again=document.querySelector(`#list .rk[data-id="${id}"]`); if(again) again.focus({preventScroll:true});
+};
+$("reveal").onclick=flip;
 $("prev").onclick=()=>go(-1); $("next").onclick=()=>go(1);
 $("again").onclick=()=>mark(false); $("good").onclick=()=>mark(true);
 
 function resetUI(){
   const box=$("resetBox");
-  box.innerHTML=`<span class="confirm">${st.ch?CH[st.ch].t:"全章"}の記録を消しますか？<button class="link" id="rYes" style="color:var(--again)">消す</button><button class="link" id="rNo">やめる</button></span>`;
-  $("rYes").onclick=()=>{pool().forEach(c=>clear(c.id)); saveKnown(); restore(); buildDeck(); render();};
+  box.innerHTML=`<span class="confirm">${st.ch?CH[st.ch].t:"全章"}の記録を消しますか？<button type="button" class="link" id="rYes" style="color:var(--again)">消す</button><button type="button" class="link" id="rNo">やめる</button></span>`;
+  $("rYes").onclick=()=>{pool().forEach(c=>clear(c.id)); saveKnown(); restore(); buildDeck("fresh"); render();};
   $("rNo").onclick=restore;
+  $("rNo").focus();
 }
-function restore(){ $("resetBox").innerHTML=`<button class="link" id="reset">記録をリセット</button>`; $("reset").onclick=resetUI; }
+function restore(){ $("resetBox").innerHTML=`<button type="button" class="link" id="reset">記録をリセット</button>`; $("reset").onclick=resetUI; }
 $("reset").onclick=resetUI;
 
 /* add: questions written by an external AI chat, pasted back as "| 問題 | 解答 |" rows */
@@ -438,7 +743,7 @@ function renderPreview(){
     msg.className="msg"+(bad.length?" err":"");
   }
   $("pv").hidden=!rows.length;
-  $("pv").innerHTML=rows.map(r=>`<div class="row${r.dup?" dup":""}"><div class="rq"><span class="tag">${CH[r.ch].t}</span>　${esc(r.q)}${r.dup?'<span class="new" style="color:var(--muted)">既存</span>':""}</div>
+  $("pv").innerHTML=rows.map(r=>`<div class="row${r.dup?" dup":""}" style="--k:${CH[r.ch].k}"><div class="rq"><span class="rtag">${CH[r.ch].t}</span>${esc(r.q)}${r.dup?'<span class="added" style="color:var(--muted)">既存</span>':""}</div>
     <div class="ra">${r.a.map(x=>`<div>${esc(x)}</div>`).join("")}</div></div>`).join("");
   $("doAdd").disabled=!parsed.length;
 }
@@ -451,8 +756,8 @@ function renderAdd(){
   const added=ALL.filter(c=>c.added);
   $("customCount").textContent=added.length?`${added.length} 問`:"まだありません";
   $("customList").hidden=!added.length;
-  $("customList").innerHTML=added.map(c=>`<div class="row"><div class="rq"><span class="tag">${CH[c.ch].t} ${c.n}</span>　${esc(c.q)}</div>
-    <button class="rk" data-del="${c.id}">削除</button><div class="ra">${c.a.map(x=>`<div>${esc(x)}</div>`).join("")}</div></div>`).join("");
+  $("customList").innerHTML=added.map(c=>`<div class="row" style="--k:${CH[c.ch].k}"><div class="rq"><span class="rtag">${CH[c.ch].t} ${c.n}</span>${esc(c.q)}</div>
+    <button type="button" class="rk del" data-del="${c.id}" aria-label="「${esc(c.q)}」を削除">削除</button><div class="ra">${c.a.map(x=>`<div>${esc(x)}</div>`).join("")}</div></div>`).join("");
   $("exportCustom").disabled=!added.length;
 }
 
@@ -470,13 +775,13 @@ $("doAdd").onclick=()=>{
   parsed.forEach((r,i)=>custom.push({id:`${r.ch}-u${stamp}${i.toString(36)}`,ch:r.ch,q:r.q,a:r.a}));
   store.set("custom",custom); buildAll();
   const n=parsed.length;
-  $("paste").value=""; buildDeck(); render();
+  $("paste").value=""; buildDeck("anchor"); render();
   $("pvMsg").textContent=`${n} 問を追加しました。カード・一覧に表示されます`; $("pvMsg").className="msg ok";
 };
 $("customList").onclick=e=>{
   const b=e.target.closest("[data-del]"); if(!b) return;
   custom=custom.filter(c=>c.id!==b.dataset.del); clear(b.dataset.del);
-  store.set("custom",custom); saveKnown(); buildAll(); buildDeck(); render();
+  store.set("custom",custom); saveKnown(); buildAll(); buildDeck("anchor"); render();
 };
 $("exportCustom").onclick=()=>{
   const out=[1,2,3].map(ch=>{ const rs=ALL.filter(c=>c.added&&c.ch===ch); return rs.length?CH[ch].t+"\n"+rs.map(c=>`| ${c.q} | ${c.a.join("<br>")} |`).join("\n"):""; }).filter(Boolean).join("\n\n");
@@ -484,13 +789,24 @@ $("exportCustom").onclick=()=>{
 };
 
 document.addEventListener("keydown",e=>{
-  if(st.view!=="card"||e.target.tagName==="INPUT") return;
-  if(e.key===" "||e.key==="Enter"){e.preventDefault(); flip();}
+  const t=e.target instanceof Element?e.target:document.body;
+  if(st.view!=="card"||e.defaultPrevented||t.closest("input,textarea,select")) return;
+  if((e.ctrlKey||e.metaKey)&&!e.altKey&&e.key.toLowerCase()==="z"){ if(undoSnap){ e.preventDefault(); undo(); } return; }
+  if(e.ctrlKey||e.metaKey||e.altKey) return;
+  const onControl=t.closest("button,summary,a");
+  if(e.key===" "||e.key==="Enter"){ if(onControl) return; e.preventDefault(); flip(); }
   else if(e.key==="ArrowRight") go(1);
   else if(e.key==="ArrowLeft") go(-1);
   else if(e.key==="1") mark(false);
   else if(e.key==="2") mark(true);
+  else if(e.key==="z"||e.key==="Z") undo();
 });
+// An installed app can stay open past midnight: refresh what is due when it comes back.
+let shownDay=today();
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&today()!==shownDay){ shownDay=today(); render(); } });
 
-syncChips(); buildDeck(); render();
+buildDeck("restore"); render();
+
+if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))
+  addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script>
